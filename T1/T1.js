@@ -17,7 +17,7 @@ let scene, renderer, camera, material, light, orbit; // Initial variables
 scene = new THREE.Scene();    // Create main scene
 renderer = initRenderer();    // Init a basic renderer
 renderer.setClearColor("rgb(70, 151, 198)");
-camera = initCamera(new THREE.Vector3(10, 0, -100)); // Init camera in this position
+camera = initCamera(new THREE.Vector3(0, 800, 5)); // Init camera in this position
 material = setDefaultMaterial(); // create a basic material
 light = initDefaultBasicLight(scene); // Create a basic light to illuminate the scene
 orbit = new OrbitControls(camera, renderer.domElement); // Enable mouse rotation, pan, zoom etc.
@@ -34,10 +34,10 @@ scene.add(light)
 scene.add(plane);
 
 //Adicionando plataformas
-const area1 = buildPlatform(scene, 100, 120, 8, { x: 160, y: 0, z: 150 }, 15, 8, 1, 0x7FFFD4);
-const area2 = buildPlatform(scene, 100, 120, 8, { x: 10, y: 0, z: 150 }, 15, 8, 1, 0xE1A4A0);
-const area3 = buildPlatform(scene, 100, 120, 8, { x: -150, y: 0, z: 150 }, 15, 8, 1, 0xC3D3F1);
-const area4 = buildPlatform(scene, 100, 320, 8, { x: 10, y: 0, z: -150 }, 25, 8, 1, 0xB9D7A9);
+const area1 = buildPlatform(scene, 100, 120, 4, { x: 160, y: 0, z: 150 }, 15, 8, 0.5, 0x7FFFD4);
+const area2 = buildPlatform(scene, 100, 120, 4, { x: 10, y: 0, z: 150 }, 15, 8, 0.5, 0xE1A4A0);
+const area3 = buildPlatform(scene, 100, 120, 4, { x: -150, y: 0, z: 150 }, 15, 8, 0.5, 0xC3D3F1);
+const area4 = buildPlatform(scene, 100, 320, 8, { x: 10, y: 0, z: -150 }, 25, 8, 0.5, 0xB9D7A9);
 
 //Rotação da area 4 para escada se adequar a plataforma (rever isso!)
 const box = new THREE.Box3().setFromObject(area4);
@@ -62,7 +62,6 @@ function render() {
 ///////////////////////////////////////////////////////////////////////////////
 //interseção entre primeiro degrau e plataforma
 //mudança de lado da escada
-//mudança de orientação da plataforma
 
 function buildPlatform(scene, side_size, front_size, height, position, step_size, number_of_steps, step_depth, color) {
   const stair_depth = number_of_steps * step_depth;
