@@ -289,10 +289,10 @@ function updatePlayer(delta) {
     const moveAmount = player.speed * delta;
     const direction = new THREE.Vector3();
 
-    if (keyboard.pressed("W")) direction.z += 1;
-    if (keyboard.pressed("S")) direction.z -= 1;
-    if (keyboard.pressed("A")) direction.x += 1;
-    if (keyboard.pressed("D")) direction.x -= 1;
+    if (keyboard.pressed("W") || keyboard.pressed("up")) direction.z += 1;
+    if (keyboard.pressed("S") || keyboard.pressed("down")) direction.z -= 1;
+    if (keyboard.pressed("A") || keyboard.pressed("left")) direction.x += 1;
+    if (keyboard.pressed("D") || keyboard.pressed("right")) direction.x -= 1;
 
     if (direction.length() > 0) {
         direction.normalize();
