@@ -56,7 +56,7 @@ const fireRate = 500;
 const bulletSpeed = 30;
 const maxDistance = 100;
 const gunGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 8);
-const gunMaterial = new THREE.MeshBasicMaterial({ color: 0x555555 });
+const gunMaterial = setDefaultMaterial(0x555555);
 const gun = new THREE.Mesh(gunGeometry, gunMaterial);
 scene.add(gun);
 
@@ -401,11 +401,11 @@ window.addEventListener('mouseup', () => isShooting = false);
 
 function shoot() {
     const bulletGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-    const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const bulletMaterial = setDefaultMaterial(0xff0000);
     const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
 
     // Posição inicial do projétil
-    const offset = new THREE.Vector3(0.4, -0.15, -0.8);
+    const offset = new THREE.Vector3(0, -0.13, 0.35);
     const bulletOrigin = new THREE.Vector3();
     camera.getWorldDirection(bulletOrigin);
     bulletOrigin.multiplyScalar(0.5).add(camera.position).add(offset);
