@@ -55,10 +55,14 @@ let lastShotTime = 0;
 const fireRate = 500; 
 const bulletSpeed = 30;
 const maxDistance = 100;
-const gunGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 8);
+const gunGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 20);
 const gunMaterial = setDefaultMaterial(0x555555);
 const gun = new THREE.Mesh(gunGeometry, gunMaterial);
-scene.add(gun);
+
+gun.scale.set(2, 2, 2);
+gun.position.set(0, -0.4, -1); 
+gun.rotation.set(Math.PI / 2, 0, 0); 
+camera.add(gun);
 
 // Evento de redimensionamento
 window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
@@ -464,10 +468,10 @@ function render() {
     updateBullets();
 
     // Arma
-    const offset = new THREE.Vector3(0, -0.13, 0.35);
-    gun.position.copy(camera.position).add(offset);
-    gun.quaternion.copy(camera.quaternion);
-    gun.rotateX(Math.PI/2);
+    // const offset = new THREE.Vector3(0, -0.13, 0.35);
+    // gun.position.copy(camera.position).add(offset);
+    // gun.quaternion.copy(camera.quaternion);
+    // gun.rotateX(Math.PI/2);
 
     renderer.render(scene, camera);
     requestAnimationFrame(render);
