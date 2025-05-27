@@ -417,27 +417,34 @@ window.addEventListener('mousedown', () => isShooting = true);
 window.addEventListener('mouseup', () => isShooting = false);
 
 function shoot() {
-    const bulletGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-    const bulletMaterial = setDefaultMaterial(0xff0000);
+    const bulletGeometry = new THREE.SphereGeometry(0.09, 8, 8);
+    const bulletMaterial = setDefaultMaterial('black');
     const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
 
-    // Posição inicial do projétil
-    const offset = new THREE.Vector3(0, -0.13, 0.35);
-    const bulletOrigin = new THREE.Vector3();
-    camera.getWorldDirection(bulletOrigin);
-    bulletOrigin.multiplyScalar(0.5).add(camera.position).add(offset);
-    bullet.position.copy(bulletOrigin);
+    // posição inicial - Agora relativa à arma
+    const gunWorldPosition = new THREE.Vector3();
+    gun.getWorldPosition(gunWorldPosition); // Pega a posição global da arma
+    
+    // Ponto de saída do cano 
+    const barrelOffset = new THREE.Vector3(0, 0, 0.5); 
+    bullet.position.copy(gunWorldPosition);
+    
+    // Aplica a rotação da arma/câmera ao offset
+    barrelOffset.applyQuaternion(gun.quaternion);
+    bullet.position.add(barrelOffset);
 
-    // Direção do projétil
+    // Direção do projétil (mantém a direção da câmera)
     const direction = new THREE.Vector3();
     camera.getWorldDirection(direction);
     
-    bullets.push({ 
-        mesh: bullet, 
-        direction: direction.clone().normalize(), 
-        startPosition: bulletOrigin.clone() 
+    bullets.push({
+        mesh: bullet,
+        direction: direction.clone().normalize(),
+        startPosition: bullet.position.clone()
     });
+    
     scene.add(bullet);
+
 }
 
 function updateBullets() {
