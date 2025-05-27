@@ -64,6 +64,19 @@ gun.position.set(0, -0.4, -1);
 gun.rotation.set(Math.PI / 2, 0, 0); 
 camera.add(gun);
 
+const crosshair = document.createElement('img');
+crosshair.src = 'assets/crosshair.png'; 
+crosshair.style.position = 'absolute';
+crosshair.style.width = '100px'; 
+crosshair.style.height = '100px';
+crosshair.style.top = '50%';
+crosshair.style.left = '50%';
+crosshair.style.transform = 'translate(-50%, -50%)';
+crosshair.style.pointerEvents = 'none';
+crosshair.style.zIndex = '1000';
+
+document.body.appendChild(crosshair);
+
 // Evento de redimensionamento
 window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
 
