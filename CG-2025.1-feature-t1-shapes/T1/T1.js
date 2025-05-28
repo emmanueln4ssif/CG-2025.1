@@ -1,6 +1,3 @@
-
-
-
 import * as THREE from 'three';
 import { OrbitControls } from '../build/jsm/controls/OrbitControls.js';
 import { PointerLockControls } from '../build/jsm/controls/PointerLockControls.js';
@@ -27,11 +24,11 @@ const keyboard = new KeyboardState();
 
 // --- Configuração do Jogador ---
 const player = {
-    position: new THREE.Vector3(0, 2, 0),
+    position: new THREE.Vector3(0, 8, 0),
     velocity: new THREE.Vector3(),
     speed: 50,
     isOnGround: false,
-    height: 2,
+    height: 8,
     radius: 0.5,
     jumpForce: 10,
     gravity: 25
@@ -52,10 +49,10 @@ const tempVector = new THREE.Vector3();
 const bullets = [];
 let isShooting = false;
 let lastShotTime = 0;
-const fireRate = 500; 
-const bulletSpeed = 30;
+const fireRate = 500; // A função está pegando 1 = 0,1 milésimo de segundo, então 500 = 0,5 segundo
+const bulletSpeed = 50;
 const maxDistance = 100;
-const gunGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 20);
+const gunGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 32);
 const gunMaterial = setDefaultMaterial(0x555555);
 const gun = new THREE.Mesh(gunGeometry, gunMaterial);
 
@@ -77,7 +74,7 @@ crosshair.style.zIndex = '1000';
 
 document.body.appendChild(crosshair);
 
-// Evento de redimensionamento
+// Redimensionamento da janela
 window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
 
 // Configuração do Pointer Lock
@@ -151,13 +148,13 @@ function addPlatformToScene(platform) {
     });
 }
 
-const area1 = buildPlatform(scene, 100, 120, 4, { x: 160, y: 0, z: 150 }, 15, 8, 0.5, 0x7FFFD4);
+const area1 = buildPlatform(scene, 100, 120, 6, { x: 160, y: 0, z: 150 }, 15, 8, 0.8, 0x7FFFD4);
 addPlatformToScene(area1);
-const area2 = buildPlatform(scene, 100, 120, 4, { x: 10, y: 0, z: 150 }, 15, 8, 0.5, 0xE1A4A0);
+const area2 = buildPlatform(scene, 100, 120, 6, { x: 10, y: 0, z: 150 }, 15, 8, 0.8, 0xE1A4A0);
 addPlatformToScene(area2);
-const area3 = buildPlatform(scene, 100, 120, 4, { x: -150, y: 0, z: 150 }, 15, 8, 0.5, 0xC3D3F1);
+const area3 = buildPlatform(scene, 100, 120, 6, { x: -150, y: 0, z: 150 }, 15, 8, 0.8, 0xC3D3F1);
 addPlatformToScene(area3);
-const area4 = buildPlatform(scene, 100, 320, 8, { x: 10, y: 0, z: -150 }, 25, 8, 0.5, 0xB9D7A9);
+const area4 = buildPlatform(scene, 100, 320, 6, { x: 10, y: 0, z: -150 }, 25, 8, 0.8, 0xB9D7A9);
 area4.rotateY(-Math.PI);
 area4.position.set(10, 0, -300);
 addPlatformToScene(area4);
@@ -167,10 +164,10 @@ function addWallsAroundPlane(scene, plane_size, wall_height, wall_thickness, col
     const half = plane_size / 2;
 
     const walls = [
-        { size: [plane_size + 10, wall_height, wall_thickness], pos: [0, wall_height/2, half + wall_thickness/2] }, // front
-        { size: [plane_size + 10, wall_height, wall_thickness], pos: [0, wall_height/2, -half - wall_thickness/2] }, // back
-        { size: [wall_thickness, wall_height, plane_size], pos: [-half - wall_thickness/2, wall_height/2, 0] }, // left
-        { size: [wall_thickness, wall_height, plane_size], pos: [half + wall_thickness/2, wall_height/2, 0] }  // right
+        { size: [plane_size + 10, wall_height, wall_thickness], pos: [0, wall_height/2, half + wall_thickness/2] }, 
+        { size: [plane_size + 10, wall_height, wall_thickness], pos: [0, wall_height/2, -half - wall_thickness/2] }, 
+        { size: [wall_thickness, wall_height, plane_size], pos: [-half - wall_thickness/2, wall_height/2, 0] }, 
+        { size: [wall_thickness, wall_height, plane_size], pos: [half + wall_thickness/2, wall_height/2, 0] }  
     ];
 
     walls.forEach(wall => {
@@ -183,7 +180,7 @@ function addWallsAroundPlane(scene, plane_size, wall_height, wall_thickness, col
         collisionObjects.push(wallMesh);
     });
 }
-addWallsAroundPlane(scene, 500, 40, 5, 0x8B4513);
+addWallsAroundPlane(scene, 500, 15, 5, 0x8B4513);
 
 function buildPlatform(scene, side_size, front_size, height, position, step_size, number_of_steps, step_depth, color) {
     const stair_depth = number_of_steps * step_depth;
@@ -198,7 +195,6 @@ function buildPlatform(scene, side_size, front_size, height, position, step_size
             setDefaultMaterial('white')
         );
         degrau.position.set(0, (i + 0.5) * step_height, (i + 0.5) * step_depth);
-        degrau.userData.isRamp = true;
         escadaGroup.add(degrau);
     }
 
@@ -226,13 +222,12 @@ function buildPlatform(scene, side_size, front_size, height, position, step_size
     traseira.position.set(center.x, height/2, center.z + (side_size/2) - (step_depth/2));
 
     const rampaShape = new THREE.Shape();
-    const rampaWidth = step_size;
-    const rampaDepth = stair_depth;
+    const rampaWidth = height / 2 + step_size; 
+    const rampaDepth = step_size;
 
-    rampaShape.moveTo(-rampaWidth/2, 0);
-    rampaShape.lineTo(rampaWidth/2, 0);
+    rampaShape.moveTo(-rampaWidth / 2, 8);
+    rampaShape.lineTo(height, 0);
     rampaShape.lineTo(0, height);
-    rampaShape.lineTo(-rampaWidth/2, 0);
 
     const extrudeSettings = {
         steps: 1,
@@ -245,7 +240,9 @@ function buildPlatform(scene, side_size, front_size, height, position, step_size
 
     rampa.rotation.x = -Math.PI / 2;
     rampa.rotation.y = -Math.PI / 2;
-    rampa.position.set(center.x, 0, center.z - rampaDepth/2);
+    rampa.position.set(position.x+step_size/2, escadaGroup.position.y, escadaGroup.position.z + stair_depth - 1);
+    rampa.visible = false;
+    rampa.isRamp = true
 
     platform.add(escadaGroup, frontal1, frontal2, traseira, rampa);
     return platform;
@@ -253,50 +250,55 @@ function buildPlatform(scene, side_size, front_size, height, position, step_size
 
 // Colisão
 function checkCollision(newPos) {
-    try {
-        playerBox.setFromCenterAndSize(
-            newPos,
-            new THREE.Vector3(player.radius * 2, player.height, player.radius * 2)
-        );
+    playerBox.setFromCenterAndSize(
+        newPos,
+        new THREE.Vector3(player.radius * 2, player.height, player.radius * 2)
+    );
+    
+    for (const object of collisionObjects) {
+        if (!object) continue;
         
-        for (const object of collisionObjects) {
-            if (!object) continue;
-            
-            const objectBox = new THREE.Box3();
-            try {
-                objectBox.setFromObject(object);
-            } catch (e) {
-                console.warn("Error setting object box:", e);
-                continue;
-            }
-            
-            if (playerBox.intersectsBox(objectBox)) {
-                if (newPos.y > objectBox.max.y) {
+        const objectBox = new THREE.Box3().setFromObject(object);
+        
+        if (playerBox.intersectsBox(objectBox)) {
+            // Se for uma rampa
+            if (object.userData.isRamp) {
+                const relativeZ = newPos.z - object.position.z;
+                const rampRatio = relativeZ / (object.userData.rampLength / 2);
+                const rampHeight = object.position.y + (rampRatio * object.userData.rampHeight);
+                
+                if (newPos.y > rampHeight) {
                     return { 
                         collision: true, 
                         isGround: true, 
-                        groundY: objectBox.max.y 
+                        groundY: rampHeight 
                     };
                 }
-                
-                // Calcula a direção da colisão
-                const overlap = new THREE.Vector3();
-                playerBox.getCenter(overlap);
-                objectBox.getCenter(tempVector);
-                overlap.sub(tempVector).normalize();
-                
+            }
+            // Colisão normal com objetos planos
+            else if (newPos.y > objectBox.max.y) {
                 return { 
                     collision: true, 
-                    isGround: false,
-                    direction: overlap 
+                    isGround: true, 
+                    groundY: objectBox.max.y 
                 };
             }
+            
+            // Colisão lateral
+            const direction = new THREE.Vector3();
+            playerBox.getCenter(direction);
+            objectBox.getCenter(tempVector);
+            direction.sub(tempVector).normalize();
+            
+            return { 
+                collision: true, 
+                isGround: false,
+                direction: direction 
+            };
         }
-        return { collision: false };
-    } catch (e) {
-        console.error("Collision check error:", e);
-        return { collision: false };
     }
+    
+    return { collision: false };
 }
 
 // Atualização do jogador
@@ -338,7 +340,7 @@ function updatePlayer(delta) {
                 slideDirection.y = 0;
                 slideDirection.normalize();
                 
-                const slideAmount = moveAmount * 0.3;
+                const slideAmount = moveAmount * 0.4;
                 const slidePos = player.position.clone().add(slideDirection.multiplyScalar(slideAmount));
                 
                 if (!checkCollision(slidePos).collision) {
@@ -375,13 +377,6 @@ function updatePlayer(delta) {
     if (keyboard.pressed("space") && player.isOnGround) {
         player.velocity.y = player.jumpForce;
         player.isOnGround = false;
-    }
-
-    // Reset se cair
-    if (player.position.y < -100) {
-        player.position.set(0, 3, 0);
-        player.velocity.set(0, 0, 0);
-        player.isOnGround = true;
     }
 
     controls.getObject().position.copy(player.position);
@@ -481,17 +476,12 @@ function render() {
 
     // Balas
     const currentTime = performance.now();
-    if (isShooting && (currentTime - lastShotTime > fireRate)) {
+    // console.log(currentTime) //Se quiser verificar o tempo que é passado  
+    if (isShooting && (currentTime - lastShotTime >= fireRate)) {
         shoot();
         lastShotTime = currentTime;
     }
     updateBullets();
-
-    // Arma
-    // const offset = new THREE.Vector3(0, -0.13, 0.35);
-    // gun.position.copy(camera.position).add(offset);
-    // gun.quaternion.copy(camera.quaternion);
-    // gun.rotateX(Math.PI/2);
 
     renderer.render(scene, camera);
     requestAnimationFrame(render);
