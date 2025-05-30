@@ -20,18 +20,22 @@ let camera = initCamera(new THREE.Vector3(0.0, 0.0, -10));
 let material = setDefaultMaterial();
 let light = initDefaultBasicLight(scene);
 const clock = new Clock();
-const keyboard = new KeyboardState();
 
-// --- Configuração do Jogador ---
+// Configuração do jogador
 const player = {
-    position: new THREE.Vector3(0, 8, 0),
+    position: new THREE.Vector3(0, 8, 0), // Posição inicial (Y na altura do chão)
     velocity: new THREE.Vector3(),
     speed: 50,
+    height: 8, // Altura do jogador (1.8m é um bom valor para um personagem humano)
+    radius: 0.5, 
+    jumpForce: 20,
+    gravity: -20,
     isOnGround: false,
-    height: 8,
-    radius: 0.5,
-    jumpForce: 10,
-    gravity: 25
+    canJump: true, // Controla se o jogador pode pular
+    moveForward: false,
+    moveBackward: false,
+    moveLeft: false,
+    moveRight: false,
 };
 
 // Controles da câmera e de primeira pessoa
@@ -40,10 +44,19 @@ orbit.enabled = false;
 const controls = new PointerLockControls(camera, renderer.domElement);
 scene.add(controls.getObject());
 
-// Colisão
+// Raycasting
+const raycaster = new THREE.Raycaster();
+const rayDirections = {
+  down: new THREE.Vector3(0, -1, 0),
+  up: new THREE.Vector3(0, 1, 0),
+  front: new THREE.Vector3(0, 0, -1),
+  back: new THREE.Vector3(0, 0, 1),
+  left: new THREE.Vector3(-1, 0, 0),
+  right: new THREE.Vector3(1, 0, 0)
+};
+
+// Objetos de colisão
 const collisionObjects = [];
-const playerBox = new THREE.Box3();
-const tempVector = new THREE.Vector3();
 
 // Armas e disparos
 const bullets = [];
@@ -114,11 +127,9 @@ function setupPointerLock() {
         if (document.pointerLockElement === element) {
             controls.enabled = true;
             orbit.enabled = false;
-            console.log("PointerLock engaged");
         } else {
             controls.enabled = false;
             orbit.enabled = true;
-            console.log("PointerLock released");
         }
     };
 
@@ -138,13 +149,15 @@ scene.add(light);
 scene.add(plane);
 collisionObjects.push(plane);
 
-// Adicionando plataformas
+// Adicionando plataformas (mantido conforme seu original)
 function addPlatformToScene(platform) {
     scene.add(platform);
     platform.traverse(child => {
         if (child.isMesh) {
             collisionObjects.push(child);
         }
+addWallsAroundPlane(scene, 500, 15, 5, 0x8B4513);
+
     });
 }
 
@@ -159,7 +172,7 @@ area4.rotateY(-Math.PI);
 area4.position.set(10, 0, -300);
 addPlatformToScene(area4);
 
-// Adicionando paredes
+// Adicionando paredes (mantido conforme seu original)
 function addWallsAroundPlane(scene, plane_size, wall_height, wall_thickness, color) {
     const half = plane_size / 2;
 
@@ -182,6 +195,7 @@ function addWallsAroundPlane(scene, plane_size, wall_height, wall_thickness, col
 }
 addWallsAroundPlane(scene, 500, 15, 5, 0x8B4513);
 
+// Função para construir as plataformas
 function buildPlatform(scene, side_size, front_size, height, position, step_size, number_of_steps, step_depth, color) {
     const stair_depth = number_of_steps * step_depth;
     const step_height = height / number_of_steps;
@@ -203,6 +217,27 @@ function buildPlatform(scene, side_size, front_size, height, position, step_size
     const boundingBox = new THREE.Box3().setFromObject(escadaGroup);
     const center = boundingBox.getCenter(new THREE.Vector3());
 
+    const rampLength = Math.sqrt(stair_depth * stair_depth + height * height);
+    const rampAngle = Math.atan(height / stair_depth);
+    
+    const rampGeometry = new THREE.BoxGeometry(step_size, 0.1, rampLength);
+    
+    const rampMaterial = new THREE.MeshBasicMaterial({
+        visible: true,  
+        transparent: false,
+        opacity: 0.0
+    });
+    
+    const ramp = new THREE.Mesh(rampGeometry, rampMaterial);
+    ramp.rotation.x = -rampAngle;
+    ramp.position.set(center.x, height / 2, center.z - stair_depth / 2 + rampLength / 2.5 * Math.cos(rampAngle) - 0.5);
+    ramp.userData.isRamp = true;
+    ramp.userData.rampLength = rampLength;
+    ramp.userData.rampHeight = height;
+    ramp.userData.rampAngle = rampAngle;
+    ramp.userData.rampDirection = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(1, 0, 0), rampAngle);
+    ramp.visible = false
+    
     const frontal1 = new THREE.Mesh(
         new THREE.BoxGeometry((front_size - step_size) / 2, height, depth),
         setDefaultMaterial(color)
@@ -221,165 +256,150 @@ function buildPlatform(scene, side_size, front_size, height, position, step_size
     );
     traseira.position.set(center.x, height/2, center.z + (side_size/2) - (step_depth/2));
 
-    const rampaShape = new THREE.Shape();
-    const rampaWidth = height / 2 + step_size; 
-    const rampaDepth = step_size;
-
-    rampaShape.moveTo(-rampaWidth / 2, 8);
-    rampaShape.lineTo(height, 0);
-    rampaShape.lineTo(0, height);
-
-    const extrudeSettings = {
-        steps: 1,
-        depth: rampaDepth,
-        bevelEnabled: false
-    };
-
-    const rampaGeometry = new THREE.ExtrudeGeometry(rampaShape, extrudeSettings);
-    const rampa = new THREE.Mesh(rampaGeometry, setDefaultMaterial(0xAAAAAA));
-
-    rampa.rotation.x = -Math.PI / 2;
-    rampa.rotation.y = -Math.PI / 2;
-    rampa.position.set(position.x+step_size/2, escadaGroup.position.y, escadaGroup.position.z + stair_depth - 1);
-    rampa.visible = false;
-    rampa.isRamp = true
-
-    platform.add(escadaGroup, frontal1, frontal2, traseira, rampa);
+    platform.add(escadaGroup, frontal1, frontal2, traseira, ramp); //rampa
+    
     return platform;
 }
 
-// Colisão
-function checkCollision(newPos) {
-    playerBox.setFromCenterAndSize(
-        newPos,
-        new THREE.Vector3(player.radius * 2, player.height, player.radius * 2)
-    );
+// Sistema de colisão horizontal melhorado
+function checkHorizontalCollision(position, moveVector) {
+  const directions = [
+    { dir: rayDirections.front, move: [0, 0, -1] },
+    { dir: rayDirections.back, move: [0, 0, 1] },
+    { dir: rayDirections.left, move: [-1, 0, 0] },
+    { dir: rayDirections.right, move: [1, 0, 0] }
+  ];
+
+  const newPosition = position.clone().add(moveVector);
+  let canMove = true;
+
+  for (const { dir, move } of directions) {
+    raycaster.set(newPosition, dir);
+    raycaster.far = player.radius + 0.5;
+
+    const intersects = raycaster.intersectObjects(collisionObjects);
     
-    for (const object of collisionObjects) {
-        if (!object) continue;
+    if (intersects.length > 0 && intersects[0].distance <= player.radius + 0.5) {
+      const moveDir = new THREE.Vector3(...move);
+      if (moveVector.dot(moveDir) > 0) {
+        canMove = false;
         
-        const objectBox = new THREE.Box3().setFromObject(object);
+        const wallNormal = intersects[0].face?.normal || dir.clone().negate();
+        const slideDirection = moveVector.clone().projectOnPlane(wallNormal);
         
-        if (playerBox.intersectsBox(objectBox)) {
-            // Se for uma rampa
-            if (object.userData.isRamp) {
-                const relativeZ = newPos.z - object.position.z;
-                const rampRatio = relativeZ / (object.userData.rampLength / 2);
-                const rampHeight = object.position.y + (rampRatio * object.userData.rampHeight);
-                
-                if (newPos.y > rampHeight) {
-                    return { 
-                        collision: true, 
-                        isGround: true, 
-                        groundY: rampHeight 
-                    };
-                }
-            }
-            // Colisão normal com objetos planos
-            else if (newPos.y > objectBox.max.y) {
-                return { 
-                    collision: true, 
-                    isGround: true, 
-                    groundY: objectBox.max.y 
-                };
-            }
-            
-            // Colisão lateral
-            const direction = new THREE.Vector3();
-            playerBox.getCenter(direction);
-            objectBox.getCenter(tempVector);
-            direction.sub(tempVector).normalize();
-            
-            return { 
-                collision: true, 
-                isGround: false,
-                direction: direction 
-            };
+        if (slideDirection.length() > 0) {
+          return checkHorizontalCollision(position, slideDirection.multiplyScalar(0.6));
         }
+      }
     }
-    
-    return { collision: false };
+  }
+
+  return canMove ? newPosition : position;
 }
 
-// Atualização do jogador
+// Jogador
 function updatePlayer(delta) {
     if (!controls.isLocked) return;
 
-    const moveAmount = player.speed * delta;
-    const direction = new THREE.Vector3();
-
-    if (keyboard.pressed("W") || keyboard.pressed("up")) direction.z += 1;
-    if (keyboard.pressed("S") || keyboard.pressed("down")) direction.z -= 1;
-    if (keyboard.pressed("A") || keyboard.pressed("left")) direction.x += 1;
-    if (keyboard.pressed("D") || keyboard.pressed("right")) direction.x -= 1;
-
-    if (direction.length() > 0) {
-        direction.normalize();
-        
-        const cameraDirection = new THREE.Vector3();
-        controls.getDirection(cameraDirection);
-        cameraDirection.y = 0;
-        cameraDirection.normalize();
-        
-        const right = new THREE.Vector3();
-        right.crossVectors(new THREE.Vector3(0, 1, 0), cameraDirection).normalize();
-        
-        const moveX = right.multiplyScalar(direction.x * moveAmount);
-        const moveZ = cameraDirection.multiplyScalar(direction.z * moveAmount);
-        
-        const newPos = player.position.clone().add(moveX).add(moveZ);
-        const collision = checkCollision(newPos);
-        
-        if (collision.collision) {
-            if (collision.isGround) {
-                player.position.x = newPos.x;
-                player.position.z = newPos.z;
-            } else {
-                const slideDirection = new THREE.Vector3();
-                slideDirection.copy(collision.direction);
-                slideDirection.y = 0;
-                slideDirection.normalize();
-                
-                const slideAmount = moveAmount * 0.4;
-                const slidePos = player.position.clone().add(slideDirection.multiplyScalar(slideAmount));
-                
-                if (!checkCollision(slidePos).collision) {
-                    player.position.copy(slidePos);
-                }
-            }
-        } else {
-            player.position.x = newPos.x;
-            player.position.z = newPos.z;
-        }
-    }
+    const playerObj = controls.getObject();
+    const playerPos = playerObj.position;
 
     // Gravidade
-    player.velocity.y -= player.gravity * delta;
-    const newPosY = player.position.clone();
-    newPosY.y += player.velocity.y * delta;
+    player.velocity.y += player.gravity * delta;
+
+    // Verificação de chão
+    raycaster.set(playerPos, rayDirections.down);
+    raycaster.far = player.height * 0.6;
+    const downIntersects = raycaster.intersectObjects(collisionObjects);
     
-    const collisionY = checkCollision(newPosY);
+    player.canJump = false;
+    player.isOnGround = false;
+    let onRamp = false;
+    let rampNormal = new THREE.Vector3(0, 1, 0);
     
-    if (collisionY.collision) {
-        if (collisionY.isGround) {
-            player.position.y = collisionY.groundY + player.height/2;
+    if (downIntersects.length > 0 && downIntersects[0].distance <= player.height * 0.6) {
+        const intersect = downIntersects[0];
+
+        if (player.velocity.y <= 0.1 || intersect.object.userData.type === 'Ramp') {
+            playerPos.y = intersect.point.y + (player.height * 0.5);
             player.velocity.y = 0;
             player.isOnGround = true;
-        } else {
-            player.velocity.y = 0;
+            player.canJump = true;
         }
-    } else {
-        player.position.y = newPosY.y;
-        player.isOnGround = false;
+
+        if (intersect.object.userData.type === 'Ramp' && intersect.face) {
+            onRamp = true;
+            rampNormal = intersect.face.normal.clone();
+        }
     }
+
+    // Câmera 
+    const moveDirection = new THREE.Vector3(
+        (player.moveLeft ? -1 : 0) + (player.moveRight ? 1 : 0),
+        0,
+        (player.moveForward ? -1 : 0) + (player.moveBackward ? 1 : 0)
+    ).normalize();
+
+    const cameraQuaternion = new THREE.Quaternion();
+    camera.getWorldQuaternion(cameraQuaternion);
+    moveDirection.applyQuaternion(cameraQuaternion);
+    moveDirection.y = 0; // Remove qualquer inclinação vertical
+    moveDirection.normalize();
+
+    let moveVector = moveDirection.multiplyScalar(player.speed * delta);
+
+    // Ajuste rampas
+    if (onRamp) {
+        const angle = Math.acos(rampNormal.dot(new THREE.Vector3(0, 1, 0)));
+        if (angle < Math.PI/4) {
+            const projectedMove = moveVector.clone().projectOnPlane(rampNormal);
+            moveVector.copy(projectedMove);
+            moveVector.y += Math.sin(angle) * player.speed * delta * 0.5;
+        }
+    }
+    const newPos = checkHorizontalCollision(playerPos, moveVector);
+    playerPos.copy(newPos);
 
     // Pulo
-    if (keyboard.pressed("space") && player.isOnGround) {
+    if (player.jumpRequested && player.canJump) {
         player.velocity.y = player.jumpForce;
+        player.canJump = false;
         player.isOnGround = false;
+        player.jumpRequested = false;
     }
+    
+    if (!onRamp) {
+        player.velocity.y += player.gravity * delta;
+    }
+    playerPos.y += player.velocity.y * delta;
+}
 
-    controls.getObject().position.copy(player.position);
+// Controles
+window.addEventListener('keydown', (event) => movementControls(event.keyCode, true));
+window.addEventListener('keyup', (event) => movementControls(event.keyCode, false));
+
+function movementControls(key, value) {
+    switch (key) {
+        case 87: // W
+            player.moveForward = value;
+            break;
+        case 83: // S
+            player.moveBackward = value;
+            break;
+        case 65: // A
+            player.moveLeft = value;
+            break;
+        case 68: // D
+            player.moveRight = value;
+            break;
+        case 32: // Espaço
+            if (value && player.canJump && player.isOnGround) {
+                player.velocity.y = player.jumpForce;
+                player.isOnGround = false;
+                player.canJump = false; // Impede pulos no ar
+            }
+            break;
+    }
 }
 
 // Armas e disparos
@@ -416,19 +436,15 @@ function shoot() {
     const bulletMaterial = setDefaultMaterial('black');
     const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
 
-    // posição inicial - Agora relativa à arma
     const gunWorldPosition = new THREE.Vector3();
-    gun.getWorldPosition(gunWorldPosition); // Pega a posição global da arma
+    gun.getWorldPosition(gunWorldPosition);
     
-    // Ponto de saída do cano 
-    const barrelOffset = new THREE.Vector3(0, 0, 0.5); 
+    const barrelOffset = new THREE.Vector3(0, 0, 2); 
     bullet.position.copy(gunWorldPosition);
     
-    // Aplica a rotação da arma/câmera ao offset
     barrelOffset.applyQuaternion(gun.quaternion);
     bullet.position.add(barrelOffset);
 
-    // Direção do projétil (mantém a direção da câmera)
     const direction = new THREE.Vector3();
     camera.getWorldDirection(direction);
     
@@ -439,7 +455,6 @@ function shoot() {
     });
     
     scene.add(bullet);
-
 }
 
 function updateBullets() {
@@ -471,7 +486,6 @@ function updateBullets() {
 // Renderização
 function render() {
     const delta = Math.min(clock.getDelta(), 0.1);
-    keyboard.update();
     updatePlayer(delta);
 
     // Balas
