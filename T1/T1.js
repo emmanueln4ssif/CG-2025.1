@@ -22,31 +22,29 @@ let material = setDefaultMaterial();
 let light = initDefaultBasicLight(scene);
 const clock = new Clock();
 
-
 // Configuração do jogador
 const player = {
    position: new THREE.Vector3(0, 8, 0),
    velocity: new THREE.Vector3(),
-   speed: 50,
-   height: 8,
-   radius: 0.5,
-   jumpForce: 20,
-   gravity: -20,
-   isOnGround: false,
+   speed: 50, // Velocidade do jogador
+   height: 8, // Altura do jogador
+   radius: 0.5, // Raio do jogador para colisão
+   jumpForce: 20, // Força do pulo
+   gravity: -20, // Força da gravidade
+   isOnGround: false, // Controla se o jogador está no chão
    canJump: true, // Controla se o jogador pode pular
-   moveForward: false,
+   moveForward: false, 
    moveBackward: false,
    moveLeft: false,
    moveRight: false,
 };
 
-
-// Controles da câmera e de primeira pessoa
+// OrbitControls permite navegação livre pela cena (modo câmera livre)
 let orbit = new OrbitControls(camera, renderer.domElement);
-orbit.enabled = false;
+orbit.enabled = false; // Desabilitado inicialmente para usar controle de primeira pessoa
+// PointerLockControls permite controle de primeira pessoa (estilo FPS)
 const controls = new PointerLockControls(camera, renderer.domElement);
-scene.add(controls.getObject());
-
+scene.add(controls.getObject()); // Adiciona o objeto da câmera à cena
 
 // Raycasting
 const raycaster = new THREE.Raycaster();
@@ -59,29 +57,27 @@ const rayDirections = {
  right: new THREE.Vector3(1, 0, 0)
 };
 
-
-// Objetos de colisão
+// Lista que armazena todos os objetos que devem ser considerados na colisão
 const collisionObjects = [];
 
-
 // Armas e disparos
-const bullets = [];
-let isShooting = false;
-let lastShotTime = 0;
-const fireRate = 500; // A função está pegando 1 = 0,1 milésimo de segundo, então 500 = 0,5 segundo
-const bulletSpeed = 25;
+const bullets = []; // Lista para armazenar as balas disparadas
+let isShooting = false; // Variável para controlar o estado de disparo
+let lastShotTime = 0;   // Variável para armazenar o tempo do último disparo
+const fireRate = 500; // Cadência de 500 = 0,5 segundo
+const bulletSpeed = 25; // Velocidade da bala
 const maxDistance = 100; //Distância máxima que a bala atinge após ser disparada
 const gunGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 32);
 const gunMaterial = setDefaultMaterial(0x555555);
 const gun = new THREE.Mesh(gunGeometry, gunMaterial);
 
-
+//Posicionamento da arma
 gun.scale.set(2, 2, 2);
 gun.position.set(0, -0.4, -1);
 gun.rotation.set(Math.PI / 2, 0, 0);
-camera.add(gun);
+camera.add(gun); // Adiciona a arma à câmera para que ela acompanhe a visão do jogador
 
-
+//Crosshair inserida diretamente no HTML
 const crosshair = document.createElement('img');
 crosshair.src = 'assets/crosshair.png';
 crosshair.style.position = 'absolute';
@@ -93,19 +89,16 @@ crosshair.style.transform = 'translate(-50%, -50%)';
 crosshair.style.pointerEvents = 'none';
 crosshair.style.zIndex = '1000';
 
-
 document.body.appendChild(crosshair);
-
 
 // Redimensionamento da janela
 window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
 
-
-// Configuração do Pointer Lock
+// Função que ativa o Pointer Lock (captura do mouse para controle FPS)
 function setupPointerLock() {
    const element = renderer.domElement;
   
-   // Verificar suporte
+   // Verificar suporte do navegador para Pointer Lock 
    const havePointerLock = 'pointerLockElement' in document ||
                          'mozPointerLockElement' in document ||
                          'webkitPointerLockElement' in document;
@@ -115,7 +108,6 @@ function setupPointerLock() {
        orbit.enabled = true;
        return;
    }
-
 
    // Função para solicitar o pointer lock
    const requestPointerLock = () => {
@@ -127,14 +119,12 @@ function setupPointerLock() {
        });
    };
 
-
    // Evento de clique
    element.addEventListener('click', () => {
        if (!document.pointerLockElement) {
            requestPointerLock();
        }
    }, false);
-
 
    // Eventos de mudança de estado
    const pointerlockchange = () => {
@@ -147,16 +137,13 @@ function setupPointerLock() {
        }
    };
 
-
-   // Adicionar listeners
+   // Adicionar listeners para mudanças de pointer lock 
    document.addEventListener('pointerlockchange', pointerlockchange, false);
    document.addEventListener('mozpointerlockchange', pointerlockchange, false);
    document.addEventListener('webkitpointerlockchange', pointerlockchange, false);
 }
 
-
 setupPointerLock();
-
 
 // Cenário
 let plane = createGroundPlaneXZ(500, 500);
@@ -166,8 +153,7 @@ scene.add(light);
 scene.add(plane);
 collisionObjects.push(plane);
 
-
-// Adicionando plataformas (mantido conforme seu original)
+// Adicionando plataformas na cena
 function addPlatformToScene(platform) {
    scene.add(platform);
    platform.traverse(child => {
@@ -180,7 +166,7 @@ addWallsAroundPlane(scene, 490, 15, 5, 0x8B4513);
    });
 }
 
-
+// Definindo as áreas de plataformas
 const area1 = buildPlatform(scene, 100, 120, 6, { x: 160, y: 0, z: 150 }, 15, 8, 0.8, 0x7FFFD4);
 addPlatformToScene(area1);
 const area2 = buildPlatform(scene, 100, 120, 6, { x: 10, y: 0, z: 150 }, 15, 8, 0.8, 0xE1A4A0);
@@ -193,18 +179,16 @@ area4.position.set(10, 0, -300);
 addPlatformToScene(area4);
 
 
-// Adicionando paredes (mantido conforme seu original)
+// Adicionando paredes 
 function addWallsAroundPlane(scene, plane_size, wall_height, wall_thickness, color) {
+    
    const half = plane_size / 2;
-
-
    const walls = [
        { size: [plane_size + 10, wall_height, wall_thickness], pos: [0, wall_height/2, half + wall_thickness/2] },
        { size: [plane_size + 10, wall_height, wall_thickness], pos: [0, wall_height/2, -half - wall_thickness/2] },
        { size: [wall_thickness, wall_height, plane_size], pos: [-half - wall_thickness/2, wall_height/2, 0] },
        { size: [wall_thickness, wall_height, plane_size], pos: [half + wall_thickness/2, wall_height/2, 0] } 
    ];
-
 
    walls.forEach(wall => {
        const wallMesh = new THREE.Mesh(
@@ -235,14 +219,11 @@ function buildPlatform(scene, side_size, front_size, height, position, step_size
        degrau.position.set(0, (i + 0.5) * step_height, (i + 0.5) * step_depth);
        escadaGroup.add(degrau);
    }
+   
+   escadaGroup.position.set(position.x, 0, position.z - (side_size / 2) + (step_depth / 2)); 
 
-
-   escadaGroup.position.set(position.x, 0, position.z - (side_size / 2) + (step_depth / 2));
-
-
-   const boundingBox = new THREE.Box3().setFromObject(escadaGroup);
+   const boundingBox = new THREE.Box3().setFromObject(escadaGroup); 
    const center = boundingBox.getCenter(new THREE.Vector3());
-
 
    const rampLength = Math.sqrt(stair_depth * stair_depth + height * height);
    const rampAngle = Math.atan(height / stair_depth);
@@ -255,6 +236,7 @@ function buildPlatform(scene, side_size, front_size, height, position, step_size
        opacity: 0.0
    });
   
+   // Inserindo rampa por trás da escada
    const ramp = new THREE.Mesh(rampGeometry, rampMaterial);
    ramp.rotation.x = -rampAngle;
    ramp.position.set(center.x, height / 2, center.z - stair_depth / 2 + rampLength / 2.5 * Math.cos(rampAngle) - 0.5);
@@ -271,13 +253,11 @@ function buildPlatform(scene, side_size, front_size, height, position, step_size
    );
    frontal1.position.set(center.x - (front_size - step_size)/4 - step_size/2, height/2, center.z);
 
-
    const frontal2 = new THREE.Mesh(
        new THREE.BoxGeometry((front_size - step_size) / 2, height, depth),
        setDefaultMaterial(color)
    );
    frontal2.position.set(center.x + (front_size - step_size)/4 + step_size/2, height/2, center.z);
-
 
    const traseira = new THREE.Mesh(
        new THREE.BoxGeometry(front_size, height, side_size - stair_depth),
@@ -285,12 +265,10 @@ function buildPlatform(scene, side_size, front_size, height, position, step_size
    );
    traseira.position.set(center.x, height/2, center.z + (side_size/2) - (step_depth/2));
 
-
    platform.add(escadaGroup, frontal1, frontal2, traseira, ramp); //rampa
   
    return platform;
 }
-
 
 // Sistema de colisão horizontal melhorado
 function checkHorizontalCollision(position, moveVector) {
@@ -301,15 +279,12 @@ function checkHorizontalCollision(position, moveVector) {
    { dir: rayDirections.right, move: [1, 0, 0] }
  ];
 
-
  const newPosition = position.clone().add(moveVector);
  let canMove = true;
-
 
  for (const { dir, move } of directions) {
    raycaster.set(newPosition, dir);
    raycaster.far = player.radius + 0.5;
-
 
    const intersects = raycaster.intersectObjects(collisionObjects);
   
@@ -328,23 +303,19 @@ function checkHorizontalCollision(position, moveVector) {
    }
  }
 
-
  return canMove ? newPosition : position;
 }
 
-
 // Jogador
 function updatePlayer(delta) {
-   if (!controls.isLocked) return;
 
+   if (!controls.isLocked) return;
 
    const playerObj = controls.getObject();
    const playerPos = playerObj.position;
 
-
    // Gravidade
    player.velocity.y += player.gravity * delta;
-
 
    // Verificação de chão
    raycaster.set(playerPos, rayDirections.down);
@@ -367,13 +338,11 @@ function updatePlayer(delta) {
            player.canJump = true;
        }
 
-
        if (intersect.object.userData.type === 'Ramp' && intersect.face) {
            onRamp = true;
            rampNormal = intersect.face.normal.clone();
        }
    }
-
 
    // Câmera
    const moveDirection = new THREE.Vector3(
@@ -382,16 +351,13 @@ function updatePlayer(delta) {
        (player.moveForward ? -1 : 0) + (player.moveBackward ? 1 : 0)
    ).normalize();
 
-
    const cameraQuaternion = new THREE.Quaternion();
    camera.getWorldQuaternion(cameraQuaternion);
    moveDirection.applyQuaternion(cameraQuaternion);
    moveDirection.y = 0; // Remove qualquer inclinação vertical
    moveDirection.normalize();
 
-
    let moveVector = moveDirection.multiplyScalar(player.speed * delta);
-
 
    // Ajuste rampas
    if (onRamp) {
@@ -404,7 +370,6 @@ function updatePlayer(delta) {
    }
    const newPos = checkHorizontalCollision(playerPos, moveVector);
    playerPos.copy(newPos);
-
 
    // Pulo
    if (player.jumpRequested && player.canJump) {
@@ -419,7 +384,6 @@ function updatePlayer(delta) {
    }
    playerPos.y += player.velocity.y * delta;
 }
-
 
 // Controles
 window.addEventListener('keydown', (event) => movementControls(event.keyCode, true));
@@ -454,11 +418,9 @@ function movementControls(key, value) {
    }
 }
 
-
 // Armas e disparos
 function checkBulletCollision(bulletPosition) {
    const bulletRadius = 0.05;
-
 
    for (const object of collisionObjects) {
        if (!object) continue;
@@ -472,7 +434,6 @@ function checkBulletCollision(bulletPosition) {
            continue;
        }
 
-
        const closestPoint = new THREE.Vector3();
        objectBox.clampPoint(bulletPosition, closestPoint);
        const distance = bulletPosition.distanceTo(closestPoint);
@@ -485,16 +446,15 @@ function checkBulletCollision(bulletPosition) {
    return false;
 }
 
-
+// Eventos de mouse para disparo em dois botões
 window.addEventListener('mousedown', () => isShooting = true);
 window.addEventListener('mouseup', () => isShooting = false);
 
-
 function shoot() {
+
    const bulletGeometry = new THREE.SphereGeometry(0.25, 8, 8);
    const bulletMaterial = setDefaultMaterial('black');
    const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
-
 
    const gunWorldPosition = new THREE.Vector3();
    gun.getWorldPosition(gunWorldPosition);
@@ -504,7 +464,6 @@ function shoot() {
   
    barrelOffset.applyQuaternion(gun.quaternion);
    bullet.position.add(barrelOffset);
-
 
    const direction = new THREE.Vector3();
    camera.getWorldDirection(direction);
@@ -518,17 +477,14 @@ function shoot() {
    scene.add(bullet);
 }
 
-
 function updateBullets() {
-   const toRemove = [];
 
+   const toRemove = [];
 
    bullets.forEach((bulletData, index) => {
        const { mesh, direction, startPosition } = bulletData;
 
-
        mesh.position.add(direction.clone().multiplyScalar(bulletSpeed * clock.getDelta() * 200));
-
 
        const traveled = mesh.position.distanceTo(startPosition);
        if (traveled > maxDistance) {
@@ -536,13 +492,11 @@ function updateBullets() {
            return;
        }
 
-
        if (checkBulletCollision(mesh.position)) {
            toRemove.push(index);
            return;
        }
    });
-
 
    toRemove.reverse().forEach(i => {
        scene.remove(bullets[i].mesh);
@@ -550,12 +504,11 @@ function updateBullets() {
    });
 }
 
-
 // Renderização
 function render() {
+
    const delta = Math.min(clock.getDelta(), 0.1);
    updatePlayer(delta);
-
 
    // Balas
    const currentTime = performance.now();
@@ -566,11 +519,9 @@ function render() {
    }
    updateBullets();
 
-
    renderer.render(scene, camera);
    requestAnimationFrame(render);
 }
-
 
 // Iniciar o loop de renderização
 render();
