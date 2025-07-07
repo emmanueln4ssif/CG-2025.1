@@ -7,11 +7,11 @@ import { updateCharacter } from './characterBody.js';
 let controls, orbit, rendererElement;
 let keyboard = new KeyboardState();
 
-const player = {
+export const player = {
    position: new THREE.Vector3(0, 8, 0),
    velocity: new THREE.Vector3(),
    speed: 50,
-   height: 8,
+   height: 2,
    radius: 0.5,
    jumpForce: 20,
    gravity: -20,

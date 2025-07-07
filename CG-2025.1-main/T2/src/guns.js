@@ -36,7 +36,7 @@ function setupCrosshair() {
 
 function shoot(scene, camera) {
    const bulletGeometry = new THREE.SphereGeometry(0.25, 8, 8);
-   const bulletMaterial = setDefaultMaterial('black');
+   const bulletMaterial = setDefaultMaterial('gold');
    const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
 
    const gunWorldPosition = new THREE.Vector3();
