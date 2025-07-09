@@ -17,6 +17,8 @@ import {
    setupEnvironment,
    openDoor,
    updateDoor,
+   downElevator,
+   updateElevatorBase,
 } from './environment.js';
 
 import {
@@ -69,8 +71,18 @@ let emissiveBoost = 0.05;
 controls.getObject().hasKey;
 let doorIsOpening = false;
 
+// -- Elevador ---
+export let elevatorBase = scene.getObjectByName("elevatorBase"); // atribuído ao construir a plataforma
+export let elevatorTargetY = 0;
+export let elevatorMoving = false;
+export let elevatorGoingDown = false;
+export let elevatorGoingUp = false;
+export let elevatorWaiting = false;
+
+
 // --- Renderização ---
 function render() {
+
    const delta = Math.min(clock.getDelta(), 0.1);
 
    // Atualização do personagem
@@ -89,19 +101,20 @@ function render() {
    // Atualiza ambiente (inclui animação da plataforma)
    updatePlatform(collisionObjects);
 
-   if (key) {
-      key.rotation.x += 0.01;
-   }
-
    // Verifica colisão com chave
    if (key) {
+      key.rotation.x += 0.01;
       checkKeyPickup(controls, platform, key, scene);
    }
 
+   // Verifica se o jogador pegou a chave, se sim, ativa a porta
    if (controls.getObject().hasKey) {
+
       const activationBlock = scene.getObjectByName("activationBlock");
 
+      //Se o bloco de ativação existir
       if (activationBlock) {
+
          const blockPosition = new THREE.Vector3();
          activationBlock.getWorldPosition(blockPosition);
 
@@ -110,6 +123,7 @@ function render() {
          const distanceToDoor = controls.getObject().position.distanceTo(blockPosition);
          //console.log("Distância até a porta:", distanceToDoor);
 
+         // Se o jogador estiver próximo o suficiente da porta, ativa a chave
          if (distanceToDoor < 5) {
             key.visible = true;
             platformWithKey.remove(key);
@@ -126,19 +140,24 @@ function render() {
       }
    }
 
-
    if (controls.getObject().hasKey && controls.getObject().unlockedDoor && !doorIsOpening) {
       openDoor(scene);
       doorIsOpening = true;
-
-      const elevatorBase = scene.getObjectByName("elevatorBase");
-      
-
+      elevatorGoingDown = true;
+      elevatorTargetY = - (elevatorBase.geometry.parameters.height/2) + 0.1;
+      elevatorMoving = true;
    }
+
    updateDoor(scene);
-  
-   
-   
+   updateElevator();
+
+   if (elevatorWaiting && !elevatorMoving && isPlayerOnTop(controls.getObject(), elevatorBase)) {
+      elevatorTargetY = elevatorBase.geometry.parameters.height/2; // ou altura original do elevador
+      elevatorMoving = true;
+      elevatorGoingUp = true;
+      elevatorWaiting = false;
+      console.log("jogador está em cima do elevador, subindo...");
+   }
 
    // Renderização da cena
    renderer.render(scene, camera);
@@ -152,6 +171,44 @@ window.addEventListener('keydown', (event) => {
    }
 });
 
+// Função para verificar se o jogador está em cima do elevador
+function isPlayerOnTop(playerObject, base) {
+
+   const playerPos = playerObject.position.clone(); // Posição do jogador
+   const baseBox = new THREE.Box3().setFromObject(base); // Cria uma caixa delimitadora para a base do elevador
+
+   // Pequeno box nos pés do jogador (altura baixa para evitar falsos positivos)
+   const feetBox = new THREE.Box3(
+      new THREE.Vector3(playerPos.x - 0.4, playerPos.y - 1.9, playerPos.z - 0.4),
+      new THREE.Vector3(playerPos.x + 0.4, playerPos.y - 1.7, playerPos.z + 0.4)
+   );
+
+   return baseBox.intersectsBox(feetBox);
+}
+
+export function updateElevator() {
+   if (!elevatorMoving || !elevatorBase) return;
+
+   elevatorBase.position.y = THREE.MathUtils.lerp(
+      elevatorBase.position.y,
+      elevatorTargetY,
+      0.015
+   );
+
+   if (Math.abs(elevatorBase.position.y - elevatorTargetY) < 0.05) {
+      elevatorBase.position.y = elevatorTargetY;
+      elevatorMoving = false;
+
+      if (elevatorGoingDown) {
+         elevatorGoingDown = false;
+         elevatorWaiting = true;
+      } else if (elevatorGoingUp) {
+         elevatorGoingUp = false;
+      }
+
+      console.log("elevador chegou ao destino:", elevatorTargetY);
+   }
+}
 
 // Iniciar o loop de renderização
 render();

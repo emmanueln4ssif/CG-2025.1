@@ -11,7 +11,7 @@ export const player = {
    position: new THREE.Vector3(0, 8, 0),
    velocity: new THREE.Vector3(),
    speed: 50,
-   height: 2,
+   height: 4,
    radius: 0.5,
    jumpForce: 20,
    gravity: -20,

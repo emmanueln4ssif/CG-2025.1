@@ -3,30 +3,31 @@ import * as THREE from 'three';
 import { setDefaultMaterial, createGroundPlaneXZ } from '../../libs/util/util.js';
 import { CSG } from '../../libs/other/CSGMesh.js';
 import { buildKey, createPlatformWithKey, raisePlatform, updateObject, key } from './key.js';
+import { controls } from './player.js';
 
 let doorIsOpening = false;
 const doorOpenSpeed = 0.01;
-const doorOpenDistance = 15;
 let doorStartPosition = new THREE.Vector3();
 let doorTargetPosition = new THREE.Vector3();
 
 export let elevatorBase;
 let elevatorMoving = false;
-let elevatorTargetY = 0.1; 
+let elevatorBaseStartPosition = new THREE.Vector3();
+let elevatorBaseTargetPosition = new THREE.Vector3();
 
 
 export function setupEnvironment(scene, collisionObjects, light) {
   // Plano do chão
   let plane = createGroundPlaneXZ(500, 500);
   plane.userData.isPlatform = true;
-  plane.material.color.set(0xFFF1C1);
+  plane.material.color.set(0xFFF1A9);
   scene.add(light);
   scene.add(plane);
   collisionObjects.push(plane);
 
   // Adiciona plataformas
   // Área 1: Plataforma com escada e colunas gregas
-  const area1 = buildPlatform(scene, 100, 120, 4, { x: 160, y: 0, z: 150 }, 15, 8, 0.8, 0xE2725B);
+  const area1 = buildPlatform(scene, 100, 120, 4, { x: 160, y: 0, z: 150 }, 15, 8, 0.8, 0x383838);
   addPlatformToScene(scene, area1, collisionObjects);
   addGreekColumnsToPlatform(area1, collisionObjects);
   createGreekFrontColumns(scene, { x: 160, y: 4, z: 107 }, 0.45, collisionObjects);
@@ -35,7 +36,7 @@ export function setupEnvironment(scene, collisionObjects, light) {
 
   // Area 2: Plataforma com porta e parte elevatória
   //const area2 = buildPlatform(scene, 100, 120, 4, { x: 5, y: 0, z: 150 }, 15, 8, 0.5, 0xE1A4A0);
-  const area2 = buildPlatformWithElevator(scene, 100, 120, 4, { x: 5, y: 0, z: 150 }, 15, 15, 0x654321);
+  const area2 = buildPlatformWithElevator(scene, 100, 120, 8, { x: 5, y: 0, z: 150 }, 10, 10, 0x654321);
   addPlatformToScene(scene, area2, collisionObjects);
 
   const area3 = buildPlatform(scene, 100, 120, 4, { x: -150, y: 0, z: 150 }, 15, 8, 0.8, 0xC3D3F1);
@@ -55,6 +56,7 @@ export function setupEnvironment(scene, collisionObjects, light) {
 function buildPlatformWithElevator(scene, sideSize, frontSize, height, position, elevatorLength, elevatorDepth, color) {
 
   const platform = new THREE.Group();
+  platform.userData.elevatorLength = elevatorLength;
 
   //Elevador no centro frontal
   const elevator = new THREE.Group();
@@ -62,13 +64,12 @@ function buildPlatformWithElevator(scene, sideSize, frontSize, height, position,
 
   //Base do elevador (chão)
   const elevatorBase = new THREE.Mesh(
-    new THREE.BoxGeometry(elevatorLength, 0.2, elevatorDepth - 0.5),
-    new THREE.MeshLambertMaterial({ color: 0x808080 })
+    new THREE.BoxGeometry(elevatorLength, height, elevatorDepth - 0.1),
+    new THREE.MeshLambertMaterial({ color: 0x2F4F4F })
   );
   elevatorBase.name = "elevatorBase";
-  elevatorBase.position.set(0, height - 0.15, 0);
+  elevatorBase.position.set(0, height/2, 0);
   elevator.add(elevatorBase);
-
 
   //Porta do elevador
   const elevatorDoor = createElevatorDoor(0, height / 2, -elevatorDepth / 2 + 0.1, elevatorLength, height, 0.2);
@@ -101,7 +102,23 @@ function buildPlatformWithElevator(scene, sideSize, frontSize, height, position,
   platform.position.set(position.x, position.y, position.z);
   scene.add(platform);
 
+  platform.add(addRectangle(8, 6, 10, {x: 40, y: position.y + height*1.5 - 1, z:42}, "gray")); // Base da plataforma
+  platform.add(addRectangle(8, 7, 10, {x: -52, y:position.y + height*1.5 - 1, z:15}, "gray"));
+  platform.add(addRectangle(8, 8, 10, {x: 15, y: position.y + height*1.5 - 1, z:-5}, "gray"));
+  platform.add(addRectangle(8, 9, 10, {x: 26, y: position.y + height*1.5 - 1, z:-28}, "gray"));
+  platform.add(addRectangle(8, 10, 10, {x: 48, y: position.y + height*1.5 - 1, z:-35}, "gray"));
+  platform.add(addRectangle(8, 11, 10, {x: -45, y: position.y + height*1.5 - 1, z:-44}, "gray"));
+  platform.add(addRectangle(8, 11, 10, {x: -25, y: position.y + height*1.5 -1, z:-44}, "gray"));
+  platform.add(addRectangle(8, 12, 10, {x: -20, y: position.y + height*1.5 - 1, z:-15}, "gray"));
+  platform.add(addRectangle(8, 13, 10, {x: -2, y: position.y + height*1.5 -1, z:35}, "gray"));
+  platform.add(addRectangle(8, 14, 10, {x: -29, y: position.y + height*1.5 - 1, z:5}, "gray"));
+  platform.add(addRectangle(8, 15, 10, {x: 2, y: position.y + height*1.5 - 1, z:42}, "gray"));
+  platform.add(addRectangle(8, 17, 10, {x: -46, y: position.y + height*1.5 - 1, z:40}, "gray"));
+  platform.add(addRectangle(8, 10, 10, {x: -46, y: position.y + height*1.5 - 1, z:0}, "gray"));
+  platform.add(addRectangle(8, 10, 10, {x: 0, y: position.y + height*1.5 -1, z:0}, "gray"));
+
   return platform;
+  
 }
 
 //Cria porta do elevador intercalando cores das ripas
@@ -133,7 +150,7 @@ function createElevatorDoor(x, y, z, doorWidth, doorHeight, doorDepth) {
     new THREE.BoxGeometry(3, 0.5, 1),
     new THREE.MeshLambertMaterial({ color: 0x4B3621 })
   );
-  activationBlock.position.set(doorGroup.position.x, 1, doorGroup.position.z - 0.5); // defina a posição próxima à porta
+  activationBlock.position.set(doorGroup.position.x, 1, doorGroup.position.z - 0.5); 
   doorGroup.add(activationBlock);
   activationBlock.name = "activationBlock";
 
@@ -151,8 +168,11 @@ export function openDoor(scene) {
 
   doorIsOpening = true;
 
+  let doorOpenDistance = doorGroup.parent.parent.userData.elevatorLength;
+
   doorStartPosition.copy(doorGroup.position);
   doorTargetPosition.set(doorGroup.position.x - doorOpenDistance, doorGroup.position.y, doorGroup.position.z - 0.25);
+
 }
 
 export function updateDoor(scene) {
@@ -170,6 +190,53 @@ export function updateDoor(scene) {
     doorIsOpening = false;
   }
 }
+
+export function downElevator(scene) {
+
+  let elevatorBase = scene.getObjectByName("elevatorBase");
+  if (!elevatorBase) return;
+
+  elevatorMoving = true;
+
+  let elevatorTargetY = 0.1; // ele vai até o chão
+
+  elevatorBaseStartPosition.copy(elevatorBase.position);
+  elevatorBaseTargetPosition.set(elevatorBase.position.x, elevatorTargetY, elevatorBase.position.z);
+  //console.log("Dados do elevador:", JSON.stringify(elevatorBase));
+
+}
+
+export function updateElevatorBase(scene) {
+  let elevatorBase = scene.getObjectByName("elevatorBase");
+  if (!elevatorBase || !elevatorMoving) return;
+
+  //Movimenta suavemente a base do elevador na direção do alvo
+  elevatorBase.position.lerp(elevatorBaseTargetPosition, doorOpenSpeed);
+  //console.log("Elevador:", elevatorBase.position);
+
+  //Para animação quando chegou perto
+  if (elevatorBase.position.distanceTo(elevatorBaseTargetPosition) < 0.01) {
+    elevatorBase.position.copy(elevatorBaseTargetPosition);
+    elevatorMoving = false;
+    //console.log("Elevador parado na posição:", elevatorBase.position);
+  }
+}
+
+function addRectangle(width, height, depth, position, color) {
+  
+  const rectangle = new THREE.Mesh(
+    new THREE.BoxGeometry(width, height, depth),
+    new THREE.MeshLambertMaterial({ color: color })
+  );
+  rectangle.position.set(position.x, position.y, position.z);
+  rectangle.castShadow = true;
+  rectangle.receiveShadow = true;
+  
+  return rectangle;
+
+}
+
+
 
 
 
