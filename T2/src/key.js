@@ -183,4 +183,3 @@ export function checkKeyPickup(controls, platform, key, scene) {
         }
     }
 }
-
