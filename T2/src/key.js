@@ -95,6 +95,8 @@ export function createPlatformWithKey(scene, area, size, color, colorName, colli
 
     scene.add(platform);
     collisionObjects.push(platform);
+    platform.castShadow = true;
+    platform.receiveShadow = true;
 
     return platform;
 }

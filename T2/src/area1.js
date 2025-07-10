@@ -20,12 +20,16 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
 
     //Posição base da plataforma
     const baseX = platformGroup.userData.x;
-    const baseY = platformGroup.userData.y;
+    const baseY = platformGroup.userData.y + 0.1;
     const baseZ = platformGroup.userData.z;
 
     //Cria o grupo de colunas
     const spacing = 12; // Espaçamento entre colunas
-    const material = new THREE.MeshLambertMaterial({ color: columnColor });
+    const material = new THREE.MeshLambertMaterial({ 
+        color: columnColor,
+        emissive: 0x222222, 
+        emissiveIntensity: 0.1 
+     });
 
     //Parte frontal da plataforma
     const y = baseY + height; // Altura da plataforma
@@ -76,6 +80,8 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
             column.rotation.z = brokenAngle * Math.random();
         }
 
+        column.castShadow = true; // Habilita sombras
+        column.receiveShadow = true; // Habilita recebimento de sombras
         return column;
 
     }
@@ -168,8 +174,13 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
     platformGroup.traverse(child => {
         if (child.isMesh) {
             collisionObjects.push(child);
+            child.castShadow = true;
+            child.receiveShadow = true;
         }
     });
+
+    platformGroup.castShadow = true; // Habilita sombras para o grupo de colunas
+    platformGroup.receiveShadow = true; // Habilita recebimento de sombras para o grupo de colunas
 
 }
 
@@ -206,12 +217,18 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
         column.add(capital);
 
         column.position.x = xOffset;
+        
         return column;
     }
 
     //Coluna esquerda e direita
     const leftCol = createColumn(-spacing);
+    leftCol.castShadow = true;
+    leftCol.receiveShadow = true;
+
     const rightCol = createColumn(spacing);
+    rightCol.castShadow = true;
+    rightCol.receiveShadow = true;
     group.add(leftCol);
     group.add(rightCol);
 
@@ -221,6 +238,8 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
         rubyshMaterial
     );
     beam.position.y = columnHeight + 2.5 * scale;
+    beam.castShadow = true;
+    beam.receiveShadow = true;
     group.add(beam);
 
     //viga vertical no meio da viga horizontal
@@ -228,6 +247,8 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
         new THREE.BoxGeometry(2 * scale, 3, 4 * scale),
         rubyshMaterial
     );
+    verticalBeam.castShadow = true;
+    verticalBeam.receiveShadow = true;
     group.add(verticalBeam);
     verticalBeam.position.set(0, columnHeight + 7 * scale, 0);
 
@@ -240,6 +261,8 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
     //deixar em pé
     roof.position.y = columnHeight + 10 * scale;
     roof.rotation.x = -Math.PI / 2;
+    roof.castShadow = true;
+    roof.receiveShadow = true;
     group.add(roof);
 
     // Posiciona o conjunto
@@ -247,5 +270,7 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
     scene.add(group);
 
     collisionObjects.push(group);
+    group.castShadow = true; // Habilita sombras
+    group.receiveShadow = true; // Habilita recebimento de sombras
 
 }

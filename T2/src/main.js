@@ -9,19 +9,32 @@ import {createPlatformWithKey, raisePlatform, updatePlatform, key, platform, che
 import { setupPlayer, updatePlayer, controls, player } from './player.js';
 import { setupGun, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired } from './guns.js';
 import { placeKeyAndUnlockDoor, openDoor, updateDoor, raiseRectangleWithKey, updateElevator, isPlayerOnTop, elevatorState } from './area2.js';
-
+import { sunLight, ambientLight } from './light.js';
 
 // --- Cena Básica ---
-let scene = new THREE.Scene();
+export let scene = new THREE.Scene()
 let renderer = initRenderer();
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setClearColor("rgb(13, 1, 35)");
+
+// GARANTE QUE TODOS OS OBJETOS USAM SOMBRA
+scene.traverse(obj => {
+  if (obj.isMesh) {
+    obj.castShadow = true;
+    obj.receiveShadow = true;
+  }
+});
+
+//Luzes
+scene.add(ambientLight);
+scene.add(sunLight);
+
 let camera = initCamera(new THREE.Vector3(0.0, 0.0, -10));
-let material = setDefaultMaterial();
-let light = initDefaultBasicLight(scene);
 const clock = new Clock();
 
 let collisionObjects = [];
-setupEnvironment(scene, collisionObjects, light);
+setupEnvironment(scene, collisionObjects, sunLight);
 
 // Setup do personagem e câmera
 setupPlayer(camera, scene, renderer);
@@ -139,3 +152,4 @@ window.addEventListener('keydown', (event) => {
 
 // Iniciar o loop de renderização
 render();
+

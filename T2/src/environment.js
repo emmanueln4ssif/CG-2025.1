@@ -16,6 +16,7 @@ export function setupEnvironment(scene, collisionObjects, light) {
   let plane = createGroundPlaneXZ(500, 500);
   plane.userData.isPlatform = true;
   plane.material.color.set(0xFFF1A9);
+  plane.receiveShadow = true; // Habilita recebimento de sombras
   scene.add(light);
   scene.add(plane);
   collisionObjects.push(plane);
@@ -30,7 +31,7 @@ export function setupEnvironment(scene, collisionObjects, light) {
 
   // Area 2: Plataforma com porta e parte elevatória
   yellowKey = buildKey({ x: 0, y: 6, z: 22 }, scene, "Yellow", "0xff6699", 80, collisionObjects);
-  area2 = buildPlatformWithElevator(scene, 100, 120, 8, { x: 5, y: 0, z: 150 }, 10, 10, 0x654321, yellowKey);
+  area2 = buildPlatformWithElevator(scene, 100, 120, 8, { x: 5, y: -0.1, z: 150 }, 10, 10, 0x654321, yellowKey);
   area2.name = "area2";
   addPlatformToScene(scene, area2, collisionObjects);
 
@@ -123,7 +124,11 @@ function buildPlatform(scene, side_size, front_size, height, position, step_size
 function addPlatformToScene(scene, platform, collisionObjects) {
   scene.add(platform);
   platform.traverse(child => {
-    if (child.isMesh) collisionObjects.push(child);
+    if (child.isMesh) {
+      collisionObjects.push(child);
+      child.castShadow = true; // Habilita sombras
+      child.receiveShadow = true; // Habilita recebimento de sombras
+    }
   });
 }
 

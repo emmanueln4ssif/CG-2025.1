@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { setDefaultMaterial } from "../../libs/util/util.js";
+import { MeshLambertMaterial } from '../../build/three.module.js';
 
 const bullets = [];
 let isShooting = false;
@@ -9,13 +10,16 @@ const bulletSpeed = 50;
 const maxDistance = 100;
 let gun, crosshairElement;
 
+
 function setupGun(camera) {
    const gunGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 32);
-   const gunMaterial = setDefaultMaterial(0x555555);
+   const gunMaterial = new MeshLambertMaterial({color: 0x555555, emissive: 0x222222, emissiveIntensity: 0.1});
    gun = new THREE.Mesh(gunGeometry, gunMaterial);
    gun.scale.set(2, 2, 2);
    gun.position.set(0, -0.4, -1);
    gun.rotation.set(Math.PI / 2, 0, 0);
+   gun.castShadow = true;
+   gun.receiveShadow = true;
    camera.add(gun);
 }
 
