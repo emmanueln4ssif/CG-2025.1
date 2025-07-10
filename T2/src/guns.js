@@ -28,9 +28,12 @@ function setupGun(camera) {
 function setupChaingun(camera, spriteMixer) {
    const loader = new THREE.TextureLoader();
    loader.load('assets/chaingun.png', (texture) => {
+      texture.minFilter = THREE.NearestFilter; 
+      texture.magFilter = THREE.NearestFilter;
+      
       chaingunSprite = spriteMixer.ActionSprite(texture, 3, 1);
-      chaingunSprite.scale.set(2.5, 1.7, 1);
-      chaingunSprite.position.set(0, -1.1, -2);
+      chaingunSprite.scale.set(1.5, 0.9, 1);
+      chaingunSprite.position.set(0, -1.3, -3.5);
       chaingunSprite.renderOrder = 999;
       chaingunSprite.material.depthTest = false;
 
