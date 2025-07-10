@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { setDefaultMaterial } from "../../libs/util/util.js";
+import {SpriteMixer} from "../../libs/sprites/SpriteMixer.js"; 
 
 const bullets = [];
 let isShooting = false;
@@ -8,15 +9,59 @@ const fireRate = 500;
 const bulletSpeed = 50;
 const maxDistance = 100;
 let gun, crosshairElement;
+let chaingunSprite, shootAction;
+let weapons = {};
+let currentWeapon = 'launcher';
 
 function setupGun(camera) {
    const gunGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 32);
-   const gunMaterial = setDefaultMaterial(0x555555);
+   const gunMaterial =  new THREE.MeshLambertMaterial({color: 0x555555});
    gun = new THREE.Mesh(gunGeometry, gunMaterial);
    gun.scale.set(2, 2, 2);
    gun.position.set(0, -0.4, -1);
    gun.rotation.set(Math.PI / 2, 0, 0);
    camera.add(gun);
+
+   weapons.launcher = gun; 
+}
+
+function setupChaingun(camera, spriteMixer) {
+   const loader = new THREE.TextureLoader();
+   loader.load('assets/chaingun.png', (texture) => {
+      chaingunSprite = spriteMixer.ActionSprite(texture, 3, 1);
+      chaingunSprite.scale.set(2.5, 1.7, 1);
+      chaingunSprite.position.set(0, -1.1, -2);
+      chaingunSprite.renderOrder = 999;
+      chaingunSprite.material.depthTest = false;
+
+      shootAction = spriteMixer.Action(chaingunSprite, 1, 2, 100); 
+      chaingunSprite.setFrame(0);
+
+      const hud = new THREE.Object3D();
+      camera.add(hud);
+      hud.add(chaingunSprite);
+
+      chaingunSprite.visible = false;
+      weapons.chaingun = chaingunSprite;
+   });
+}
+
+function switchWeapon(to) {
+   if (gun) gun.visible = false;
+   if (chaingunSprite) {
+      chaingunSprite.visible = false;
+      if (shootAction) shootAction.stop();
+      chaingunSprite.setFrame(0);
+   }
+
+   currentWeapon = to;
+
+   if (to === 'launcher' && gun) {
+      gun.visible = true;
+   } else if (to === 'chaingun' && chaingunSprite) {
+      chaingunSprite.visible = true;
+      chaingunSprite.setFrame(0);
+   }
 }
 
 function setupCrosshair() {
@@ -36,7 +81,7 @@ function setupCrosshair() {
 
 function shoot(scene, camera) {
    const bulletGeometry = new THREE.SphereGeometry(0.25, 8, 8);
-   const bulletMaterial = setDefaultMaterial('gold');
+   const bulletMaterial = new THREE.MeshLambertMaterial({color: 'gold'});
    const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
 
    const gunWorldPosition = new THREE.Vector3();
@@ -96,8 +141,22 @@ function updateBullets(clock, scene, collisionObjects) {
 }
 
 function handleShootingState() {
-   window.addEventListener('mousedown', () => isShooting = true);
-   window.addEventListener('mouseup', () => isShooting = false);
+   window.addEventListener('mousedown', () => {
+    isShooting = true;
+
+    if (currentWeapon === 'chaingun' && shootAction) {
+        shootAction.playLoop(); // loop automático
+    }
+   });
+   window.addEventListener('mouseup', () => {
+      isShooting = false;
+
+      if (currentWeapon === 'chaingun' && shootAction) {
+         shootAction.stop();      
+         chaingunSprite.setFrame(0); 
+      }
+   });
+
 }
 
 function canShootNow(currentTime) {
@@ -108,12 +167,26 @@ function markShotFired(currentTime) {
    lastShotTime = currentTime;
 }
 
+function setupWeaponSwitching() {
+   document.addEventListener('keydown', (e) => {
+      if (e.key === '1') switchWeapon('chaingun');
+      if (e.key === '2') switchWeapon('launcher');
+   });
+
+   document.addEventListener('wheel', () => {
+      switchWeapon(currentWeapon === 'launcher' ? 'chaingun' : 'launcher');
+   });
+}
+
 export {
    setupGun,
+   setupChaingun,
    setupCrosshair,
    shoot,
    updateBullets,
    handleShootingState,
    canShootNow,
-   markShotFired
+   markShotFired,
+   switchWeapon,
+   setupWeaponSwitching
 };
