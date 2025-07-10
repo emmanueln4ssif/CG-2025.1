@@ -1,15 +1,15 @@
 import * as THREE from 'three';
 import { CSG } from '../../libs/other/CSGMesh.js';
 
-export let platform, key;
+export let platform, key, redKey, yellowKey;
 export let platformRising = false;
 let platformGoalY = 0;
 let keyFading = false;
-let keyFadeSpeed = 0.02;       
+let keyFadeSpeed = 0.02;
 let emissiveBoost = 0.02;
 
 // Função para construir uma chave usando CSG
-export function buildKey(position, scene, color, brightnessColor, collisionObjects) {
+export function buildKey(position, scene, color, brightnessColor, shininess, collisionObjects) {
 
     //Cria uma matriz 4x4, que representa: posicao, rotacao, escala e transformações no espaço 3D
     //Aqui, ela é uma matriz identidade pq nao se aplica as transformações ao mesh inicial
@@ -44,12 +44,13 @@ export function buildKey(position, scene, color, brightnessColor, collisionObjec
 
     //Cria a malha final da chave a partir do objeto CSG, converte para uma malha
     let mesh = CSG.toMesh(csgObject, auxMatrix);
-    mesh.material = new THREE.MeshPhongMaterial({ 
+    mesh.material = new THREE.MeshPhongMaterial({
         color: color,
         transparent: true,
         opacity: 1,
         emissive: brightnessColor, // vermelho
-        emissiveIntensity: 0.3
+        emissiveIntensity: 0.3,
+        shininess: shininess
     });
     mesh.position.set(position.x, position.y, position.z);
 
@@ -59,29 +60,53 @@ export function buildKey(position, scene, color, brightnessColor, collisionObjec
     return mesh;
 }
 
-//Função para criar uma plataforma com uma chave
-export function createPlatformWithKey(scene, area, size, color, collisionObjects) {
+//Função para criar uma plataforma com uma chave na Area 1
+export function createPlatformWithKey(scene, area, size, color, colorName, collisionObjects, reflectiveColor) {
 
     // Cria a plataforma
     platform = new THREE.Mesh(
         new THREE.CylinderGeometry(1.5, 1.5, 0.4, 24),
         new THREE.MeshLambertMaterial({ color: color })
     );
+    //console.log("nome da cor:", colorName);
 
     //Posiciona a plataforma em orientação a área que veio como parametro
     platform.position.set(area.userData.x, area.userData.y - 2, area.userData.z);
-    platform.name = "platformWithKey";
+    platform.name = "platformWithKeyColor" + colorName; // nome da plataforma com a cor
 
     //Adiciona a chave, criada no centro da plataforma
-    key = buildKey({ x: 0, y: -10, z: 0 }, scene, "red", "0xff6699", collisionObjects);
+    key = buildKey({ x: 0, y: -10, z: 0 }, scene, colorName, "0xff6699", 60, collisionObjects);
     platform.add(key);
     key.position.set(0, 1.5, 0); // posiciona de acordo com a plataforma
-    key.name = "keyOnPlatform";
+    key.name = colorName + "KeyOnPlatform";
 
     scene.add(platform);
     collisionObjects.push(platform);
 
     return platform;
+}
+
+// Função para criar uma plataforma com uma chave na Area 2
+export function addRectangleWithKey(blockMesh, receivedKey, platform) {
+
+    let keyBlock = new THREE.Group();
+    keyBlock.add(blockMesh);
+
+    // Ajusta a posição da chave para ficar sobre o bloco
+    //console.log("dados do blockMesh:", blockMesh);
+    receivedKey.position.set(0, blockMesh.userData.height / 2 + 1, 0);
+
+    keyBlock.add(receivedKey);
+    platform.add(keyBlock);
+    receivedKey.visible = false; // Torna a chave visível
+
+    // Posiciona o grupo todo (bloco + chave)
+    keyBlock.position.set(0, 12, 0);
+
+    keyBlock.name = "rectangleWithKey";
+
+    return keyBlock;
+
 }
 
 // Função para levantar a plataforma
@@ -116,29 +141,29 @@ export function updateObject(mesh) {
 // Função para verificar se o jogador está próximo da chave e pode coletá-la
 export function checkKeyPickup(controls, platform, key, scene) {
 
-    if (!key) return;      
+    if (!key) return;
 
     let player = controls.getObject();
     const distance = player.position.distanceTo(platform.position);
-    const pickupDistance = 8; 
+    const pickupDistance = 8;
 
     if (!keyFading && distance < pickupDistance && key.visible) {
-        console.log("Chave encontrada!");
+        //console.log("Chave encontrada!");
         //mostrar que o jogador pegou a chave
-        controls.getObject().hasKey = true; 
+        controls.getObject().hasKey = true;
         //key.visible = false; 
-        keyFading = true; 
+        keyFading = true;
     }
 
     if (keyFading) {
-        console.log("Opacidade atual:", key.material.opacity);
+        //console.log("Opacidade atual:", key.material.opacity);
         key.material.opacity -= keyFadeSpeed;
         key.material.emissiveIntensity = Math.max(0, key.material.emissiveIntensity - emissiveBoost);
 
         if (key.material.opacity <= 0) {
             key.visible = false;
             keyFading = false;
-            console.log("Chave desapareceu.");
+            //console.log("Chave desapareceu.");
         }
     }
 }

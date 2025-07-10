@@ -14,11 +14,7 @@ import {
 } from "../../libs/util/util.js";
 
 import {
-   setupEnvironment,
-   openDoor,
-   updateDoor,
-   downElevator,
-   updateElevatorBase,
+   setupEnvironment
 } from './environment.js';
 
 import {
@@ -27,7 +23,7 @@ import {
    updatePlatform,
    key,
    platform,
-   checkKeyPickup,
+   checkKeyPickup
 } from './key.js';
 
 import { setupPlayer, updatePlayer, controls, player } from './player.js';
@@ -41,6 +37,8 @@ import {
    canShootNow,
    markShotFired
 } from './guns.js';
+
+import { placeKeyAndUnlockDoor, openDoor, updateDoor, raiseRectangleWithKey } from './area2.js';
 
 // --- Cena Básica ---
 let scene = new THREE.Scene();
@@ -70,6 +68,7 @@ let keyFadeSpeed = 0.02;
 let emissiveBoost = 0.05;
 controls.getObject().hasKey;
 let doorIsOpening = false;
+//let redKey, yellowKey;
 
 // -- Elevador ---
 export let elevatorBase = scene.getObjectByName("elevatorBase"); // atribuído ao construir a plataforma
@@ -101,62 +100,50 @@ function render() {
    // Atualiza ambiente (inclui animação da plataforma)
    updatePlatform(collisionObjects);
 
+   //raisePlatform(key)
+
+   // ajustar com parte do Emerson [...] derrotou os inimigos da area 1...
+   controls.getObject().defeatedEnemiesArea1 = true; 
+   
    // Verifica colisão com chave
    if (key) {
       key.rotation.x += 0.01;
       checkKeyPickup(controls, platform, key, scene);
    }
 
-   // Verifica se o jogador pegou a chave, se sim, ativa a porta
+   // Verifica se o jogador pegou a chave, se sim, coloca a chave no bloco de ativação e desbloqueia a porta
    if (controls.getObject().hasKey) {
-
-      const activationBlock = scene.getObjectByName("activationBlock");
-
-      //Se o bloco de ativação existir
-      if (activationBlock) {
-
-         const blockPosition = new THREE.Vector3();
-         activationBlock.getWorldPosition(blockPosition);
-
-         const platformWithKey = scene.getObjectByName("platformWithKey");
-
-         const distanceToDoor = controls.getObject().position.distanceTo(blockPosition);
-         //console.log("Distância até a porta:", distanceToDoor);
-
-         // Se o jogador estiver próximo o suficiente da porta, ativa a chave
-         if (distanceToDoor < 5) {
-            key.visible = true;
-            platformWithKey.remove(key);
-            activationBlock.add(key);
-            key.scale.set(0.5, 0.5, 0.5);
-            key.position.set(0, 1, -0.5);
-
-            while (key.material.opacity < 1) {
-               key.material.opacity += keyFadeSpeed;
-            }
-
-            controls.getObject().unlockedDoor = true; //demonstra que a porta foi desbloqueada
-         }
-      }
+      placeKeyAndUnlockDoor(scene, controls);
    }
 
+   // Verifica se a porta está desbloqueada, aí começa a abrir a porta e descer o elevador
    if (controls.getObject().hasKey && controls.getObject().unlockedDoor && !doorIsOpening) {
       openDoor(scene);
       doorIsOpening = true;
       elevatorGoingDown = true;
       elevatorTargetY = - (elevatorBase.geometry.parameters.height/2) + 0.1;
       elevatorMoving = true;
+      controls.getObject().hasKey = false; // Reseta a chave após abrir a porta
    }
 
    updateDoor(scene);
    updateElevator();
 
+   // Verifica se o elevador já chegou no chão e o jogador está em cima dele
    if (elevatorWaiting && !elevatorMoving && isPlayerOnTop(controls.getObject(), elevatorBase)) {
       elevatorTargetY = elevatorBase.geometry.parameters.height/2; // ou altura original do elevador
       elevatorMoving = true;
       elevatorGoingUp = true;
       elevatorWaiting = false;
-      console.log("jogador está em cima do elevador, subindo...");
+      //console.log("jogador está em cima do elevador, subindo...");
+   }
+
+   // ajustar com parte do Emerson [...] derrotou os inimigos da area 2...
+   controls.getObject().defeatedEnemiesArea2 = true; // Simulando que o jogador derrotou os inimigos da área 2
+   
+   let rectangle = scene.getObjectByName("rectangleWithKey"); // Torna o bloco de ativação visível   
+   if(controls.getObject().unlockedDoor && controls.getObject().defeatedEnemiesArea2) {
+      raiseRectangleWithKey(rectangle);
    }
 
    // Renderização da cena
@@ -164,13 +151,17 @@ function render() {
    requestAnimationFrame(render);
 }
 
+
+//teste para levantar a plataforma com a tecla 'E'
 window.addEventListener('keydown', (event) => {
-   if (event.key === 'e') {
-      console.log("⏫ Tecla 'E' pressionada: plataforma subindo");
+   if (event.key == 'e') {
+      console.log("⏫ Tecla 'E' pressionada: plataforma com chave vermelha subindo");
       raisePlatform(key);
    }
 });
 
+
+//MODULARIZAR ESSAS FUNÇÕES PARA OUTRO ARQUIVO - TA DANDO ERRO QUANDO COLOCA EM OUTRO ARQUIVO
 // Função para verificar se o jogador está em cima do elevador
 function isPlayerOnTop(playerObject, base) {
 
@@ -209,6 +200,8 @@ export function updateElevator() {
       console.log("elevador chegou ao destino:", elevatorTargetY);
    }
 }
+
+
 
 // Iniciar o loop de renderização
 render();
