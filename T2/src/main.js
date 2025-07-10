@@ -10,6 +10,7 @@ import { setupPlayer, updatePlayer, controls, player } from './player.js';
 import { setupGun, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired } from './guns.js';
 import { placeKeyAndUnlockDoor, openDoor, updateDoor, raiseRectangleWithKey, updateElevator, isPlayerOnTop, elevatorState } from './area2.js';
 
+
 // --- Cena Básica ---
 let scene = new THREE.Scene();
 let renderer = initRenderer();
@@ -131,7 +132,7 @@ function render() {
 window.addEventListener('keydown', (event) => {
    if (event.key == 'e') {
       console.log("⏫ Tecla 'E' pressionada: plataforma com chave vermelha subindo");
-      raisePlatform(key);
+      raisePlatform(key, 7);
    }
 });
 

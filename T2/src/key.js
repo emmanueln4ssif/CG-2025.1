@@ -8,6 +8,8 @@ let keyFading = false;
 let keyFadeSpeed = 0.02;
 let emissiveBoost = 0.02;
 
+// CONSTRUÇÃO DE OBJETO CHAVE -------------------------------------------------------------------------------
+
 // Função para construir uma chave usando CSG
 export function buildKey(position, scene, color, brightnessColor, shininess, collisionObjects) {
 
@@ -60,7 +62,18 @@ export function buildKey(position, scene, color, brightnessColor, shininess, col
     return mesh;
 }
 
-//Função para criar uma plataforma com uma chave na Area 1
+
+// Função para atualizar a matriz de um objeto
+export function updateObject(mesh) {
+    mesh.matrixAutoUpdate = false;
+    mesh.updateMatrix();
+}
+
+
+
+// CONSTRUÇÃO DE PEQUENAS PLATAFORMAS COM CHAVE -----------------------------------------------------------------
+
+//Função para criar uma plataforma com uma chave (Area 1)
 export function createPlatformWithKey(scene, area, size, color, colorName, collisionObjects, reflectiveColor) {
 
     // Cria a plataforma
@@ -86,7 +99,7 @@ export function createPlatformWithKey(scene, area, size, color, colorName, colli
     return platform;
 }
 
-// Função para criar uma plataforma com uma chave na Area 2
+// Função para criar uma plataforma, recebendo uma chave (Area 2)
 export function addRectangleWithKey(blockMesh, receivedKey, platform) {
 
     let keyBlock = new THREE.Group();
@@ -109,11 +122,15 @@ export function addRectangleWithKey(blockMesh, receivedKey, platform) {
 
 }
 
-// Função para levantar a plataforma
-// Esta função é chamada quando a tecla 'E' é pressionada, mas eh teste
-export function raisePlatform() {
+
+
+// FUNÇÕES DE COMPORTAMENTO DE PLATAFORMA E CHAVE -----------------------------------------------------------------
+
+// Função para levantar a plataforma até uma certa altura
+// Quando a plataforma é levantada, a chave fica visível
+export function raisePlatform(key, increment) {
     if (!platform) return;
-    platformGoalY = platform.position.y + 7;
+    platformGoalY = platform.position.y + increment;
     platformRising = true;
     if (key) key.visible = true;
 }
@@ -121,6 +138,7 @@ export function raisePlatform() {
 // Função para atualizar o ambiente, incluindo a animação da plataforma
 // Chamada no loop de renderização, verifica se a plataforma está subindo e atualiza sua posição
 export function updatePlatform() {
+    
     if (!platform) return;
 
     if (platformRising) {
@@ -132,11 +150,9 @@ export function updatePlatform() {
     }
 }
 
-// Função para atualizar a matriz de um objeto
-export function updateObject(mesh) {
-    mesh.matrixAutoUpdate = false;
-    mesh.updateMatrix();
-}
+
+
+// FUNÇÕES DE COMPORTAMENTO JOGADOR E CHAVE -----------------------------------------------------------------
 
 // Função para verificar se o jogador está próximo da chave e pode coletá-la
 export function checkKeyPickup(controls, platform, key, scene) {
