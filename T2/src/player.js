@@ -3,6 +3,7 @@ import { OrbitControls } from '../../build/jsm/controls/OrbitControls.js';
 import { PointerLockControls } from '../../build/jsm/controls/PointerLockControls.js';
 import KeyboardState from '../../libs/util/KeyboardState.js';
 import { updateCharacter } from './characterBody.js';
+import { isShooting } from './guns.js';
 
 let controls, orbit, rendererElement;
 let keyboard = new KeyboardState();
@@ -14,7 +15,7 @@ export const player = {
    height: 4,
    radius: 0.5,
    jumpForce: 20,
-   gravity: -20,
+   gravity: -10,
    isOnGround: false,
    canJump: true,
    moveForward: false,
@@ -35,8 +36,9 @@ function setupPlayer(camera, scene, renderer) {
    setupPointerLock();
 
    window.addEventListener('keydown', (event) => movementControls(event.keyCode, true));
-   window.addEventListener('keyup', (event) => movementControls(event.keyCode, false));   window.addEventListener('mousedown', () => isShooting = true);
-   window.addEventListener('mouseup', () => isShooting = false);
+   window.addEventListener('keyup', (event) => movementControls(event.keyCode, false));   
+   window.addEventListener('mousedown', () => isShooting == true);
+   window.addEventListener('mouseup', () => isShooting == false);
 }
 
 function setupPointerLock() {

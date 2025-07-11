@@ -42,6 +42,7 @@ function shoot(scene, camera) {
    const bulletGeometry = new THREE.SphereGeometry(0.25, 8, 8);
    const bulletMaterial = setDefaultMaterial('gold');
    const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
+   bullet.userData = { type: 'bullet', damage: 10 };
 
    const gunWorldPosition = new THREE.Vector3();
    gun.getWorldPosition(gunWorldPosition);
@@ -113,6 +114,8 @@ function markShotFired(currentTime) {
 }
 
 export {
+   bullets,
+   isShooting,
    setupGun,
    setupCrosshair,
    shoot,

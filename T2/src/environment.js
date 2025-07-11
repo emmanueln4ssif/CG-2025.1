@@ -152,4 +152,3 @@ function addWallsAroundPlane(scene, collisionObjects, plane_size, wall_height, w
         collisionObjects.push(wallMesh);
     });
 }
-

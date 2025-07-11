@@ -1,15 +1,14 @@
 import * as THREE from 'three';
-import { OrbitControls } from '../../build/jsm/controls/OrbitControls.js';
-import { PointerLockControls } from '../../build/jsm/controls/PointerLockControls.js';
 import { Clock } from 'three';
-import KeyboardState from '../../libs/util/KeyboardState.js';
 import { initRenderer, initCamera, initDefaultBasicLight, setDefaultMaterial, onWindowResize, createGroundPlaneXZ } from "../../libs/util/util.js";
 import { setupEnvironment } from './environment.js';
-import {createPlatformWithKey, raisePlatform, updatePlatform, key, platform, checkKeyPickup } from './key.js';
+import { raisePlatform, updatePlatform, key, platform, checkKeyPickup } from './key.js';
 import { setupPlayer, updatePlayer, controls, player } from './player.js';
-import { setupGun, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired } from './guns.js';
+import { bullets, setupGun, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired } from './guns.js';
 import { placeKeyAndUnlockDoor, openDoor, updateDoor, raiseRectangleWithKey, updateElevator, isPlayerOnTop, elevatorState } from './area2.js';
 import { sunLight, ambientLight } from './light.js';
+import { createEnemy, updateEnemies } from './enemies/enemies.js';
+//import { getEnemyProjectiles } from './enemies/cacodemon.js'
 
 // --- Cena Básica ---
 export let scene = new THREE.Scene()
@@ -42,6 +41,16 @@ setupGun(camera);
 setupCrosshair();
 handleShootingState();
 
+// Setup dos inimigos
+createEnemy('lost_soul', new THREE.Vector3(0, 10, 0), scene, collisionObjects);
+createEnemy('lost_soul', new THREE.Vector3(140, 10, 120), scene, collisionObjects);
+createEnemy('lost_soul', new THREE.Vector3(140, 10, 135), scene, collisionObjects);
+createEnemy('lost_soul', new THREE.Vector3(140, 18, 150), scene, collisionObjects);
+createEnemy('lost_soul', new THREE.Vector3(140, 18, 165), scene, collisionObjects);
+createEnemy('cacodemon', new THREE.Vector3(5, 25, 190), scene, collisionObjects);
+createEnemy('cacodemon', new THREE.Vector3(45, 25, 150), scene, collisionObjects);
+createEnemy('cacodemon', new THREE.Vector3(-25, 25, 180), scene, collisionObjects);
+
 // Redimensionamento da janela
 window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
 
@@ -63,7 +72,6 @@ export let elevatorWaiting = false;
 
 // --- Renderização ---
 function render() {
-
    const delta = Math.min(clock.getDelta(), 0.1);
 
    // Atualização do personagem
@@ -78,6 +86,9 @@ function render() {
 
    // Atualização das balas
    updateBullets(clock, scene, collisionObjects);
+
+   // Atualização dos inimigos
+   updateEnemies(delta, controls.getObject(), camera, scene, collisionObjects, bullets); 
 
    // Atualiza ambiente (inclui animação da plataforma)
    updatePlatform(collisionObjects);
@@ -133,13 +144,10 @@ function render() {
       raiseRectangleWithKey(rectangle);
    }
 
-
-
    // Renderização da cena
    renderer.render(scene, camera);
    requestAnimationFrame(render);
 }
-
 
 //teste para levantar a plataforma com a tecla 'E' (APAGAR DEPOIS)
 window.addEventListener('keydown', (event) => {
@@ -152,4 +160,3 @@ window.addEventListener('keydown', (event) => {
 
 // Iniciar o loop de renderização
 render();
-
