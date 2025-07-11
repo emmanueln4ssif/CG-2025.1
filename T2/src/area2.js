@@ -82,7 +82,8 @@ export function buildPlatformWithElevator(scene, sideSize, frontSize, height, po
     let randomX = THREE.MathUtils.randFloat(-frontSize / 2, frontSize / 2);
     let randomZ = THREE.MathUtils.randFloat(-sideSize / 2, sideSize / 2);
     let randomY = THREE.MathUtils.randFloat(2, 4);
-    platform.add(addRectangle(4, 2, 4, { x: randomX, y: position.y + height * randomY - 1, z: randomZ }, "red")); // Base da plataforma
+    let randomHeight = THREE.MathUtils.randFloat(4, 15);
+    platform.add(addRectangle(4, randomHeight, 4, { x: randomX, y: position.y + height + randomY, z: randomZ + 10 }, "red")); // Base da plataforma
   }
 
   //retangulos de onde sairão os inimigos

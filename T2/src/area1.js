@@ -25,11 +25,11 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
 
     //Cria o grupo de colunas
     const spacing = 12; // Espaçamento entre colunas
-    const material = new THREE.MeshLambertMaterial({ 
+    const material = new THREE.MeshLambertMaterial({
         color: columnColor,
-        emissive: 0x222222, 
-        emissiveIntensity: 0.1 
-     });
+        emissive: 0x222222,
+        emissiveIntensity: 0.1
+    });
 
     //Parte frontal da plataforma
     const y = baseY + height; // Altura da plataforma
@@ -51,6 +51,7 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
             material
         );
         shaft.castShadow = true;
+        shaft.receiveShadow = true;
         shaft.position.y = shaftHeight / 2;
         column.add(shaft);
 
@@ -187,9 +188,9 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
 // Cria colunas gregas na frente da plataforma
 export function createGreekFrontColumns(scene, position, scale, collisionObjects) {
     const group = new THREE.Group();
-    const material = new THREE.MeshLambertMaterial({ color: 0xaaaaaa });
-    const rubyshMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 }); //cinza escuro
-    const goldMaterial = new THREE.MeshLambertMaterial({ color: 0x888888 }); //cinza mais escuro
+    const material = new THREE.MeshLambertMaterial({ color: 0xaaaaaa, emissive: 0x222222, emissiveIntensity: 0.1 });
+    const rubyshMaterial = new THREE.MeshLambertMaterial({ color: 0x444444, emissive: 0x222222, emissiveIntensity: 0.1}); //cinza escuro
+    const goldMaterial = new THREE.MeshLambertMaterial({ color: 0x888888, emissive: 0x222222, emissiveIntensity: 0.1 }); //cinza mais escuro
 
     const columnHeight = 40 * scale;
     const columnRadius = 4 * scale;
@@ -217,7 +218,9 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
         column.add(capital);
 
         column.position.x = xOffset;
-        
+        column.castShadow = true;
+        column.receiveShadow = true;
+
         return column;
     }
 
@@ -267,10 +270,14 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
 
     // Posiciona o conjunto
     group.position.set(position.x, position.y, position.z);
+    collisionObjects.push(group);
     scene.add(group);
 
-    collisionObjects.push(group);
-    group.castShadow = true; // Habilita sombras
-    group.receiveShadow = true; // Habilita recebimento de sombras
+    group.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
 
 }

@@ -9,13 +9,14 @@ import { placeKeyAndUnlockDoor, openDoor, updateDoor, raiseRectangleWithKey, upd
 import { sunLight, ambientLight } from './light.js';
 import { createEnemy, updateEnemies } from './enemies/enemies.js';
 //import { getEnemyProjectiles } from './enemies/cacodemon.js'
+import {SpriteMixer} from "../sprites/SpriteMixer.js"; 
 
 // --- Cena Básica ---
 export let scene = new THREE.Scene()
 let renderer = initRenderer();
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.setClearColor("rgb(13, 1, 35)");
+renderer.setClearColor("rgb(8, 79, 150)");
 
 // GARANTE QUE TODOS OS OBJETOS USAM SOMBRA
 scene.traverse(obj => {
@@ -31,6 +32,8 @@ scene.add(sunLight);
 
 let camera = initCamera(new THREE.Vector3(0.0, 0.0, -10));
 const clock = new Clock();
+let spriteMixer = SpriteMixer();
+
 
 let collisionObjects = [];
 setupEnvironment(scene, collisionObjects, sunLight);
