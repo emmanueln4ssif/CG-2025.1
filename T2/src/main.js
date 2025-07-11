@@ -10,7 +10,7 @@ import { setupPlayer, updatePlayer, controls, player } from './player.js';
 import { setupGun, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired, setupChaingun, setupWeaponSwitching } from './guns.js';
 import { placeKeyAndUnlockDoor, openDoor, updateDoor, raiseRectangleWithKey, updateElevator, isPlayerOnTop, elevatorState } from './area2.js';
 import { sunLight, ambientLight } from './light.js';
-import {SpriteMixer} from "../../libs/sprites/SpriteMixer.js"; 
+import {SpriteMixer} from "../sprites/SpriteMixer.js"; 
 
 // --- Cena Básica ---
 export let scene = new THREE.Scene()

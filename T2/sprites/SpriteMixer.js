@@ -1,6 +1,3 @@
-
-// Author: Felix Mariotto
-
 // Based on Lee Stemkoski's work who coded the core texture offsetting part :
 // http://stemkoski.github.io/Three.js/Texture-Animation.html
 
@@ -10,8 +7,6 @@ export function SpriteMixer() {
 
 	var actionSprites = []; // Will store every new actionSprite.
 	var listeners = []; // Will store the user callbacks to call upon loop, finished, etc..
-
-
 
 	var api = {
 		actionSprites: actionSprites,

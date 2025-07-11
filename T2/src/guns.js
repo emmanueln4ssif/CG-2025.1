@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {SpriteMixer} from "../../libs/sprites/SpriteMixer.js"; 
+import {SpriteMixer} from "../sprites/SpriteMixer.js"; 
 
 const bullets = [];
 let isShooting = false;
