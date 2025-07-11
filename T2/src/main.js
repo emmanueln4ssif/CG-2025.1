@@ -7,9 +7,10 @@ import { initRenderer, initCamera, initDefaultBasicLight, setDefaultMaterial, on
 import { setupEnvironment } from './environment.js';
 import {createPlatformWithKey, raisePlatform, updatePlatform, key, platform, checkKeyPickup } from './key.js';
 import { setupPlayer, updatePlayer, controls, player } from './player.js';
-import { setupGun, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired } from './guns.js';
+import { setupGun, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired, setupChaingun, setupWeaponSwitching } from './guns.js';
 import { placeKeyAndUnlockDoor, openDoor, updateDoor, raiseRectangleWithKey, updateElevator, isPlayerOnTop, elevatorState } from './area2.js';
 import { sunLight, ambientLight } from './light.js';
+import {SpriteMixer} from "../../libs/sprites/SpriteMixer.js"; 
 
 // --- Cena Básica ---
 export let scene = new THREE.Scene()
@@ -32,6 +33,8 @@ scene.add(sunLight);
 
 let camera = initCamera(new THREE.Vector3(0.0, 0.0, -10));
 const clock = new Clock();
+let spriteMixer = SpriteMixer();
+
 
 let collisionObjects = [];
 setupEnvironment(scene, collisionObjects, sunLight);
@@ -41,6 +44,8 @@ setupPlayer(camera, scene, renderer);
 setupGun(camera);
 setupCrosshair();
 handleShootingState();
+setupChaingun(camera, spriteMixer)
+setupWeaponSwitching();
 
 // Redimensionamento da janela
 window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
@@ -132,9 +137,10 @@ function render() {
    if (controls.getObject().unlockedDoor && controls.getObject().defeatedEnemiesArea2) {
       raiseRectangleWithKey(rectangle);
    }
-
-
-
+      
+   // Atualiza o sprite do chaingun
+   spriteMixer.update(delta); 
+   
    // Renderização da cena
    renderer.render(scene, camera);
    requestAnimationFrame(render);
