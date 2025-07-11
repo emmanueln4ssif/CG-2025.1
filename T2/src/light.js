@@ -8,9 +8,10 @@ export const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
 
 
 // SOL (luz principal com sombras)
-export const sunLight = new THREE.DirectionalLight(0xffffff, 2.5);
+export const sunLight = new THREE.DirectionalLight(0xffffff, 2);
 sunLight.position.set(100, 170, -100);
 sunLight.castShadow = true;
+//sunLight.shadow.radius = 1000; // Raio da sombra
 
 
 // CONFIGURAR SOMBRAS

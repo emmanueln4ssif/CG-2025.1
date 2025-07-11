@@ -16,7 +16,7 @@ export let scene = new THREE.Scene()
 let renderer = initRenderer();
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.setClearColor("rgb(13, 1, 35)");
+renderer.setClearColor("rgb(8, 79, 150)");
 
 // GARANTE QUE TODOS OS OBJETOS USAM SOMBRA
 scene.traverse(obj => {
