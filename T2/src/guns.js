@@ -3,8 +3,8 @@ import {SpriteMixer} from "../sprites/SpriteMixer.js";
 
 const bullets = [];
 let isShooting = false;
-let lastShotTime = 0;
-const fireRate = 500;
+let lastShotTime = 1;
+let fireRate = 1;
 const bulletSpeed = 50;
 const maxDistance = 100;
 let gun, crosshairElement;
@@ -87,7 +87,16 @@ function shoot(scene, camera) {
    const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
    bullet.castShadow = true;
    bullet.receiveShadow = true;
-   bullet.userData = { type: 'bullet', damage: 10 };
+   bullet.userData.type = 'bullet';
+   if (currentWeapon == 'launcher'){
+      bullet.userData.damage = 10;
+      fireRate = 500;
+   } else if (currentWeapon == 'chaingun') {
+      bullet.userData.damage = 2;
+      fireRate = 10000; // 10 tiros por segundo
+   } else {
+      console.log("Outra arma");
+   }
 
    const gunWorldPosition = new THREE.Vector3();
    gun.getWorldPosition(gunWorldPosition);

@@ -4,8 +4,6 @@ import { MTLLoader } from '../../../build/jsm/loaders/MTLLoader.js';
 // Importa as funções utilitárias do gerenciador
 import { createHealthBar, updateHealthBar, hasLineOfSight } from './enemies.js';
 
-const raycaster = new THREE.Raycaster();
-
 export class LostSoul {
     constructor(position, scene, collisionObjects) {
         this.hp = 20;

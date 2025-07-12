@@ -46,11 +46,11 @@ setupCrosshair();
 handleShootingState();
 
 // Setup dos inimigos
-createEnemy('lost_soul', new THREE.Vector3(0, 10, 0), scene, collisionObjects);
-createEnemy('lost_soul', new THREE.Vector3(140, 10, 120), scene, collisionObjects);
-createEnemy('lost_soul', new THREE.Vector3(140, 10, 135), scene, collisionObjects);
-createEnemy('lost_soul', new THREE.Vector3(140, 18, 150), scene, collisionObjects);
-createEnemy('lost_soul', new THREE.Vector3(140, 18, 165), scene, collisionObjects);
+createEnemy('lost_soul', new THREE.Vector3(200, 10, 185), scene, collisionObjects);
+createEnemy('lost_soul', new THREE.Vector3(155, 10, 185), scene, collisionObjects);
+createEnemy('lost_soul', new THREE.Vector3(110, 5, 170), scene, collisionObjects);
+createEnemy('lost_soul', new THREE.Vector3(120, 10, 115), scene, collisionObjects);
+createEnemy('lost_soul', new THREE.Vector3(210, 10, 115), scene, collisionObjects);
 createEnemy('cacodemon', new THREE.Vector3(5, 25, 190), scene, collisionObjects);
 createEnemy('cacodemon', new THREE.Vector3(45, 25, 150), scene, collisionObjects);
 createEnemy('cacodemon', new THREE.Vector3(-25, 25, 180), scene, collisionObjects);
@@ -172,6 +172,7 @@ function render() {
 //teste para levantar a plataforma com a tecla 'E' (APAGAR DEPOIS)
 window.addEventListener('keydown', (event) => {
    if (event.key == 'e') {
+      console.log(camera.position);
       console.log("⏫ Tecla 'E' pressionada: plataforma com chave vermelha subindo");
       raisePlatform(key, 7);
    }

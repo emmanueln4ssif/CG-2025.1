@@ -26,7 +26,7 @@ export class Cacodemon {
         // Valores de exemplo, ajuste conforme o seu cenário
         this.activationArea = new THREE.Box3(
 
-            new THREE.Vector3(-55, -10, 100), // Ponto mínimo (x, y, z)
+            new THREE.Vector3(-55, 0, 100), // Ponto mínimo (x, y, z)
             new THREE.Vector3(65, 50, 200)   // Ponto máximo (x, y, z)
         );
 
@@ -92,11 +92,6 @@ export class Cacodemon {
             this.state = 'attacking'; // Cacodemon já começa a atacar
             this.speed = this.baseSpeed;
             console.log("Cacodemon ativado!");
-        } else if (!isPlayerInArea && this.isActive) {
-            this.isActive = false;
-            this.state = 'idle';
-            this.speed = 0;
-            console.log("Cacodemon desativado!");
         }
     }
 

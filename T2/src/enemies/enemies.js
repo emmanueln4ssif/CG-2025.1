@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { LostSoul } from './lostSoul.js';
 import { Cacodemon } from './cacodemon.js'; // Descomente quando for adicionar
+import { player } from '../player.js'; // Importa o objeto player
+import { camera } from '../main.js';
 
 const allEnemies = [];
 const raycaster = new THREE.Raycaster();
@@ -24,7 +26,8 @@ export function createHealthBar() {
     const healthBar = new THREE.Group();
     healthBar.add(bgBar);
     healthBar.add(healthBarMesh);
-    
+
+    healthBar.lookAt(player.position); 
     // Adiciona uma referência à malha da vida para ser facilmente acessada depois
     healthBar.healthMesh = healthBarMesh;
 
@@ -42,8 +45,8 @@ export function updateHealthBar(healthBar, hp, maxHp) {
     else if (healthPercentage < 0.6) healthColor.set(0xffff00);
     else healthColor.set(0x00ff00);
 
-    // Faz a barra virar para a câmera
-    //healthBar.lookAt(camera.position);
+    // Faz a barra virar para onde o jogador está olhand
+    healthBar.lookAt(camera.position);
 }
 
 
@@ -74,7 +77,7 @@ export function updateEnemies(delta, playerObject, camera, scene, collisionObjec
 
         // Atualiza a lógica individual do inimigo
         enemy.update(delta, playerObject, camera);
-
+        updateHealthBar(enemy.healthBar, enemy.hp, enemy.maxHp);
         // Verifica se o inimigo deve ser removido
         if (enemy.isReadyToRemove()) {
             scene.remove(enemy.mesh);
@@ -99,7 +102,6 @@ function checkBulletCollision(enemy, playerBullets, scene) {
     for (let i = playerBullets.length - 1; i >= 0; i--) {
         const bulletData = playerBullets[i];
         const bulletMesh = bulletData.mesh;
-        console.log(`%cVerificando colisão com a bala: ${bulletMesh.uuid}`, 'color: orange; font-weight: bold;');
         
         // Cria uma caixa de colisão para a bala
         const bulletBox = new THREE.Box3().setFromObject(bulletMesh);
