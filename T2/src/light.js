@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { CSG } from '../../libs/other/CSGMesh.js';
 import {scene} from './main.js';
 
-
 // LUZ AMBIENTE (preenche sombras escuras)
 export const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
 

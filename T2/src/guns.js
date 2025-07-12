@@ -85,9 +85,9 @@ function shoot(scene, camera) {
    const bulletGeometry = new THREE.SphereGeometry(0.5, 8, 8); //0.25
    const bulletMaterial = new THREE.MeshLambertMaterial({color: 'white'});
    const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
-   bullet.userData = { type: 'bullet', damage: 10 };
    bullet.castShadow = true;
    bullet.receiveShadow = true;
+   bullet.userData = { type: 'bullet', damage: 10 };
 
    const gunWorldPosition = new THREE.Vector3();
    gun.getWorldPosition(gunWorldPosition);
@@ -184,8 +184,6 @@ function setupWeaponSwitching() {
 }
 
 export {
-   bullets,
-   isShooting,
    setupGun,
    setupChaingun,
    setupCrosshair,
@@ -195,5 +193,7 @@ export {
    canShootNow,
    markShotFired,
    switchWeapon,
-   setupWeaponSwitching
+   setupWeaponSwitching,
+   isShooting,
+   bullets
 };

@@ -35,14 +35,17 @@ export function updateHealthBar(healthBar, hp, maxHp) {
     if (!healthBar) return;
 
     const healthPercentage = hp / maxHp;
-    // Acessa a malha da vida através da referência adicionada
     healthBar.healthMesh.scale.x = Math.max(0, healthPercentage);
 
     const healthColor = healthBar.healthMesh.material.color;
-    if (healthPercentage < 0.3) healthColor.set(0xff0000); // Vermelho
-    else if (healthPercentage < 0.6) healthColor.set(0xffff00); // Amarelo
-    else healthColor.set(0x00ff00); // Verde
+    if (healthPercentage < 0.3) healthColor.set(0xff0000);
+    else if (healthPercentage < 0.6) healthColor.set(0xffff00);
+    else healthColor.set(0x00ff00);
+
+    // Faz a barra virar para a câmera
+    //healthBar.lookAt(camera.position);
 }
+
 
 // Função "Fábrica": Cria um inimigo do tipo e posição especificados
 export function createEnemy(type, position, scene, collisionObjects) {

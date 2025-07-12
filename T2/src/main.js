@@ -4,12 +4,12 @@ import { initRenderer, initCamera, initDefaultBasicLight, setDefaultMaterial, on
 import { setupEnvironment } from './environment.js';
 import { raisePlatform, updatePlatform, key, platform, checkKeyPickup } from './key.js';
 import { setupPlayer, updatePlayer, controls, player } from './player.js';
-import { bullets, setupGun, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired } from './guns.js';
+import { bullets, setupGun, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired, setupChaingun, setupWeaponSwitching } from './guns.js';
 import { placeKeyAndUnlockDoor, openDoor, updateDoor, raiseRectangleWithKey, updateElevator, isPlayerOnTop, elevatorState } from './area2.js';
 import { sunLight, ambientLight } from './light.js';
 import { createEnemy, updateEnemies } from './enemies/enemies.js';
 //import { getEnemyProjectiles } from './enemies/cacodemon.js'
-import {SpriteMixer} from "../sprites/SpriteMixer.js"; 
+import { SpriteMixer } from "../sprites/SpriteMixer.js";
 
 // --- Cena Básica ---
 export let scene = new THREE.Scene()
@@ -20,20 +20,19 @@ renderer.setClearColor("rgb(8, 79, 150)");
 
 // GARANTE QUE TODOS OS OBJETOS USAM SOMBRA
 scene.traverse(obj => {
-  if (obj.isMesh) {
-    obj.castShadow = true;
-    obj.receiveShadow = true;
-  }
+   if (obj.isMesh) {
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+   }
 });
 
 //Luzes
 scene.add(ambientLight);
 scene.add(sunLight);
 
-let camera = initCamera(new THREE.Vector3(0.0, 0.0, -10));
+export let camera = initCamera(new THREE.Vector3(0.0, 0.0, -10));
 const clock = new Clock();
 let spriteMixer = SpriteMixer();
-
 
 let collisionObjects = [];
 setupEnvironment(scene, collisionObjects, sunLight);
@@ -41,6 +40,8 @@ setupEnvironment(scene, collisionObjects, sunLight);
 // Setup do personagem e câmera
 setupPlayer(camera, scene, renderer);
 setupGun(camera);
+setupWeaponSwitching(); 
+setupChaingun(camera, spriteMixer)
 setupCrosshair();
 handleShootingState();
 
@@ -91,7 +92,7 @@ function render() {
    updateBullets(clock, scene, collisionObjects);
 
    // Atualização dos inimigos
-   updateEnemies(delta, controls.getObject(), camera, scene, collisionObjects, bullets); 
+   updateEnemies(delta, controls.getObject(), camera, scene, collisionObjects, bullets);
 
    // Atualiza ambiente (inclui animação da plataforma)
    updatePlatform(collisionObjects);
@@ -113,10 +114,9 @@ function render() {
 
    // Verifica se o jogador desbloqueou a porta, se sim, abre a porta e move o elevador para baixo
    if (controls.getObject().hasKey && controls.getObject().unlockedDoor && !doorIsOpening) {
-      
+
       openDoor(scene);
       doorIsOpening = true;
-
       elevatorState.goingDown = true;
       elevatorState.targetY = - (elevatorState.base.geometry.parameters.height / 2) + 0.1;
       elevatorState.moving = true;
@@ -129,23 +129,40 @@ function render() {
 
    // Verifica se o elevador está parado no chão e se o jogador está em cima dele, se sim, sobe o elevador até o nível da plataforma
    if (elevatorState.waiting && !elevatorState.moving && isPlayerOnTop(controls.getObject(), elevatorState.base)) {
+      
       elevatorState.targetY = elevatorState.base.geometry.parameters.height / 2;
       elevatorState.moving = true;
       elevatorState.goingUp = true;
       elevatorState.waiting = false;
-      // console.log("jogador está em cima do elevador. subindo...");
-   }
+      
+      //console.log("jogador está em cima do elevador. subindo...");
+      // //verifica se quer subir o elevador pela pos y da base
+      // console.log(elevatorBase.position.y);
 
+      // if(elevatorBase.position.y < 2){
+      //    elevatorState.targetY = elevatorState.base.geometry.parameters.height / 2;
+      //    elevatorState.goingUp = true;
+      //    elevatorState.goingDown = false;
+      // } else {
+      //    elevatorState.targetY = -3.9; // volta para o chão
+      //    elevatorState.goingUp = false;
+      //    elevatorState.goingDown = true;
+      // }
+      // elevatorState.moving = true;
+      // elevatorState.waiting = false;
+   }
 
    // ajustar com parte do Emerson [...] derrotou os inimigos da area 2...
    controls.getObject().defeatedEnemiesArea2 = true; // Simulando que o jogador derrotou os inimigos da área 2
 
    // Levanta o retângulo com a chave amarela se o jogador desbloqueou a porta e derrotou os inimigos da área 2
-   let rectangle = scene.getObjectByName("rectangleWithKey");  
+   let rectangle = scene.getObjectByName("rectangleWithKey");
 
    if (controls.getObject().unlockedDoor && controls.getObject().defeatedEnemiesArea2) {
       raiseRectangleWithKey(rectangle);
    }
+
+   spriteMixer.update(delta); // animação dos sprites
 
    // Renderização da cena
    renderer.render(scene, camera);

@@ -79,20 +79,21 @@ export function buildPlatformWithElevator(scene, sideSize, frontSize, height, po
   scene.add(platform);
 
   for (let i = 0; i < 20; i++) {
-    let randomX = THREE.MathUtils.randFloat(-frontSize / 2, frontSize / 2);
-    let randomZ = THREE.MathUtils.randFloat(-sideSize / 2, sideSize / 2);
+    let randomX = THREE.MathUtils.randFloat(-frontSize / 2 + 5, frontSize / 2 - 5);
+    let randomZ = THREE.MathUtils.randFloat(-sideSize / 2 + 10, sideSize / 2 - 10);
     let randomY = THREE.MathUtils.randFloat(2, 4);
     let randomHeight = THREE.MathUtils.randFloat(4, 15);
-    platform.add(addRectangle(4, randomHeight, 4, { x: randomX, y: position.y + height + randomY, z: randomZ + 10 }, "red")); // Base da plataforma
+
+    platform.add(addRectangle(4, randomHeight, 4, { x: randomX, y: position.y + height + randomY, z: randomZ }, 0x4B3621)); // Base da plataforma
   }
 
   //retangulos de onde sairão os inimigos
-  let rectangleEnemieOne = platform.add(addRectangle(4, 2, 4, { x: 0, y: 10, z: 40 }, "yellow")); // Esquerda
-  let rectangleEnemieTwo = platform.add(addRectangle(4, 2, 4, { x: 40, y: 15, z: 0 }, "yellow")); // Direita
-  let rectangleEnemieThree = platform.add(addRectangle(4, 2, 4, { x: -30, y: 18, z: 30 }, "yellow")); // Traseira
+  let rectangleEnemieOne = platform.add(addRectangle(4, 2, 4, { x: 0, y: 10, z: 40 }, 0x4B3621)); // Esquerda
+  let rectangleEnemieTwo = platform.add(addRectangle(4, 2, 4, { x: 40, y: 15, z: 0 }, 0x4B3621)); // Direita
+  let rectangleEnemieThree = platform.add(addRectangle(4, 2, 4, { x: -30, y: 18, z: 30 }, 0x4B3621)); // Traseira
 
   // cria o retangulo que vai ficar com a chave
-  let blockMesh = addRectangle(4, 2, 4, { x: 0, y: 0, z: 0 }, "blue");
+  let blockMesh = addRectangle(4, 2, 4, { x: 0, y: -3, z: 0 }, "blue");
   let rectangleWithYellowKey = addRectangleWithKey(blockMesh, receivedKey, platform);
 
   return platform;
@@ -225,6 +226,7 @@ export function updateDoor(scene) {
 //Função para atualizar o elevador
 //Esta função é chamada no loop de renderização
 export function updateElevator() {
+  
   const { moving, base, targetY } = elevatorState;
 
   if (!moving || !base) return;
@@ -244,29 +246,30 @@ export function updateElevator() {
       elevatorState.waiting = true;
     } else if (elevatorState.goingUp) {
       elevatorState.goingUp = false;
+      elevatorState.waiting = true;
     }
 
-    console.log("🚀 Elevador chegou ao destino:", targetY);
+    console.log("elevador chegou ao destino:", targetY);
   }
 }
 
 
 //Função para descer o elevador
 //Chamada no render() assim que o jogador abre a porta do elevador
-export function downElevator(scene) {
+// export function downElevator(scene) {
 
-  let elevatorBase = scene.getObjectByName("elevatorBase");
-  if (!elevatorBase) return;
+//   let elevatorBase = scene.getObjectByName("elevatorBase");
+//   if (!elevatorBase) return;
 
-  elevatorMoving = true;
+//   elevatorMoving = true;
 
-  let elevatorTargetY = 0.1; // ele vai até o chão
+//   let elevatorTargetY = 0.1; // ele vai até o chão
 
-  elevatorBaseStartPosition.copy(elevatorBase.position);
-  elevatorBaseTargetPosition.set(elevatorBase.position.x, elevatorTargetY, elevatorBase.position.z);
-  //console.log("Dados do elevador:", JSON.stringify(elevatorBase));
+//   elevatorBaseStartPosition.copy(elevatorBase.position);
+//   elevatorBaseTargetPosition.set(elevatorBase.position.x, elevatorTargetY, elevatorBase.position.z);
+//   //console.log("Dados do elevador:", JSON.stringify(elevatorBase));
 
-}
+// }
 
 
 // Função para verificar se o jogador está em cima do elevador
@@ -274,6 +277,7 @@ export function isPlayerOnTop(playerObject, base) {
 
    const playerPos = playerObject.position.clone(); // Posição do jogador
    const baseBox = new THREE.Box3().setFromObject(base); // Cria uma caixa delimitadora para a base do elevador
+   elevatorState.moving = true;
 
    // Pequeno box nos pés do jogador (altura baixa para evitar falsos positivos)
    const feetBox = new THREE.Box3(

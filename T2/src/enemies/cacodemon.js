@@ -38,7 +38,7 @@ export class Cacodemon {
         loader.load('./assets/cacodemon.glb', (gltf) => {
             // --- CRIAÇÃO DA HITBOX MAIOR ---
             // 1. Cria uma geometria invisível maior que o modelo
-            const hitboxGeometry = new THREE.SphereGeometry(2.5, 8, 8); // Raio de 2.5
+            const hitboxGeometry = new THREE.SphereGeometry(6, 6, 6); // Raio de 2.5
             const hitboxMaterial = new THREE.MeshBasicMaterial({ visible: false });
             this.mesh = new THREE.Mesh(hitboxGeometry, hitboxMaterial); // this.mesh agora é a hitbox
             this.mesh.position.copy(position);
@@ -53,12 +53,11 @@ export class Cacodemon {
                 if (child.isMesh) {
                     child.castShadow = true;
                     child.receiveShadow = true;
+                    this.collisionObjects.push(child);
                 }
             });
 
             this.scene.add(this.mesh);
-            this.collisionObjects.push(this.mesh);
-
             this.healthBar = createHealthBar();
             this.healthBar.position.set(0, 3.5, 0);
             this.mesh.add(this.healthBar);
