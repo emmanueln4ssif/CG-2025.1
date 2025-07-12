@@ -89,7 +89,16 @@ function shoot(scene, camera) {
    const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
    bullet.castShadow = true;
    bullet.receiveShadow = true;
-   bullet.userData = { type: 'bullet', damage: 10 };
+   bullet.userData.type = 'bullet';
+   if (currentWeapon == 'launcher'){
+      bullet.userData.damage = 10;
+      fireRate = 500;
+   } else if (currentWeapon == 'chaingun') {
+      bullet.userData.damage = 2;
+      fireRate = 10000; // 10 tiros por segundo
+   } else {
+      console.log("Outra arma");
+   }
 
    const gunWorldPosition = new THREE.Vector3();
    gun.getWorldPosition(gunWorldPosition);
