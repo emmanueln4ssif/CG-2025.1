@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { CSG } from '../../libs/other/CSGMesh.js';
 
-export let platform, key, redKey, yellowKey;
+export let platform, key, redKey, yellowKey, yellowKeySupport, redKeySupport;
 export let platformRising = false;
-let platformGoalY = 0;
+let platformTargetY;
+let platformToElevate;
 let keyFading = false;
 let keyFadeSpeed = 0.02;
 let emissiveBoost = 0.02;
@@ -50,14 +51,19 @@ export function buildKey(position, scene, color, brightnessColor, shininess, col
         color: color,
         transparent: true,
         opacity: 1,
-        emissive: brightnessColor, // vermelho
+        emissive: brightnessColor, 
         emissiveIntensity: 0.3,
         shininess: shininess
     });
     mesh.position.set(position.x, position.y, position.z);
 
     scene.add(mesh);
+    
     collisionObjects.push(mesh);
+
+    mesh.userData = {
+        fading: false
+    };
 
     return mesh;
 }
@@ -81,7 +87,6 @@ export function createPlatformWithKey(scene, area, size, color, colorName, colli
         new THREE.CylinderGeometry(1.5, 1.5, 0.4, 24),
         new THREE.MeshLambertMaterial({ color: color })
     );
-    //console.log("nome da cor:", colorName);
 
     //Posiciona a plataforma em orientação a área que veio como parametro
     platform.position.set(area.userData.x, area.userData.y - 2, area.userData.z);
@@ -92,11 +97,18 @@ export function createPlatformWithKey(scene, area, size, color, colorName, colli
     platform.add(key);
     key.position.set(0, 1.5, 0); // posiciona de acordo com a plataforma
     key.name = colorName + "KeyOnPlatform";
+    key.userData.fading = false; // para controle de fading da chave
+    console.log(key.name)
+
+    if (key.name === "RedKeyOnPlatform") {
+        redKey = key; // guarda a chave vermelha 
+    }
 
     scene.add(platform);
     collisionObjects.push(platform);
     platform.castShadow = true;
     platform.receiveShadow = true;
+    redKeySupport = platform;
 
     return platform;
 }
@@ -105,18 +117,18 @@ export function createPlatformWithKey(scene, area, size, color, colorName, colli
 export function addRectangleWithKey(blockMesh, receivedKey, platform) {
 
     let keyBlock = new THREE.Group();
+    yellowKey = receivedKey;
+
     keyBlock.add(blockMesh);
-
-    // Ajusta a posição da chave para ficar sobre o bloco
-    //console.log("dados do blockMesh:", blockMesh);
-    receivedKey.position.set(0, blockMesh.userData.height / 2 + 1, 0);
-
     keyBlock.add(receivedKey);
+    receivedKey.position.set(0, blockMesh.children[1].geometry.parameters.height - 4, 0);
     platform.add(keyBlock);
-    receivedKey.visible = false; // Torna a chave visível
+    receivedKey.visible = true;
+    keyBlock.castShadow = true;
+    keyBlock.receiveShadow = true;
 
     // Posiciona o grupo todo (bloco + chave)
-    keyBlock.position.set(0, 12, 0);
+    keyBlock.position.set(0, 0, 0);
 
     keyBlock.name = "rectangleWithKey";
 
@@ -129,26 +141,23 @@ export function addRectangleWithKey(blockMesh, receivedKey, platform) {
 // FUNÇÕES DE COMPORTAMENTO DE PLATAFORMA E CHAVE -----------------------------------------------------------------
 
 // Função para levantar a plataforma até uma certa altura
-// Quando a plataforma é levantada, a chave fica visível
-export function raisePlatform(key, increment) {
-    if (!platform) return;
-    platformGoalY = platform.position.y + increment;
+// Ativar a subida de fora
+export function raisePlatformTo(y, receivedPlatform) {
     platformRising = true;
-    if (key) key.visible = true;
+    platformTargetY = y;
+    platformToElevate = receivedPlatform;
 }
 
 // Função para atualizar o ambiente, incluindo a animação da plataforma
 // Chamada no loop de renderização, verifica se a plataforma está subindo e atualiza sua posição
-export function updatePlatform() {
-    
-    if (!platform) return;
+export function updatePlatformMovement() {
+    if (!platformToElevate || !platformRising) return;
 
-    if (platformRising) {
-        platform.position.y = THREE.MathUtils.lerp(platform.position.y, platformGoalY, 0.05);
-        if (Math.abs(platform.position.y - platformGoalY) < 0.01) {
-            platform.position.y = platformGoalY;
-            platformRising = false;
-        }
+    platformToElevate.position.y = THREE.MathUtils.lerp(platformToElevate.position.y, platformTargetY, 0.05);
+
+    if (Math.abs(platformToElevate.position.y - platformTargetY) < 0.01) {
+        platformToElevate.position.y = platformTargetY;
+        platformRising = false;
     }
 }
 
@@ -156,32 +165,48 @@ export function updatePlatform() {
 
 // FUNÇÕES DE COMPORTAMENTO JOGADOR E CHAVE -----------------------------------------------------------------
 
-// Função para verificar se o jogador está próximo da chave e pode coletá-la
-export function checkKeyPickup(controls, platform, key, scene) {
+// Função para verificar se o jogador está próximo o suficiente da chave e pode coletá-la
+export function checkKeyPickup(controls, platform, receivedKey, scene) {
 
-    if (!key) return;
+    if (!receivedKey) return;
 
-    let player = controls.getObject();
-    const distance = player.position.distanceTo(platform.position);
+    const playerWorldPos = new THREE.Vector3();
+    const platWorldPos = new THREE.Vector3();
+
+    controls.getObject().getWorldPosition(playerWorldPos);
+    platform.getWorldPosition(platWorldPos);
+
+    const distance = playerWorldPos.distanceTo(platWorldPos);
+    //console.log("Distância do jogador à chave:", distance);
+
     const pickupDistance = 8;
+    //console.log(receivedKey.name);
 
-    if (!keyFading && distance < pickupDistance && key.visible) {
-        //console.log("Chave encontrada!");
-        //mostrar que o jogador pegou a chave
-        controls.getObject().hasKey = true;
-        //key.visible = false; 
-        keyFading = true;
+    if (!receivedKey.userData.fading && distance < pickupDistance && receivedKey.visible) {
+
+        //Setar que o jogador pegou a chave
+        if (receivedKey.name === "RedKeyOnPlatform") {
+            controls.getObject().hasRedKey = true;
+
+        } else if (receivedKey.name === "yellowKey") {
+            controls.getObject().hasYellowKey = true;
+        }
+        
+        //Começa o processo de fading da chave
+        receivedKey.userData.fading = true;
     }
 
-    if (keyFading) {
-        //console.log("Opacidade atual:", key.material.opacity);
-        key.material.opacity -= keyFadeSpeed;
-        key.material.emissiveIntensity = Math.max(0, key.material.emissiveIntensity - emissiveBoost);
 
-        if (key.material.opacity <= 0) {
-            key.visible = false;
-            keyFading = false;
-            //console.log("Chave desapareceu.");
+    // Se a chave está em fading, diminui a opacidade e a intensidade do brilho individualmente, sem afetar as outras
+    if (receivedKey.userData.fading) {
+        receivedKey.material.opacity -= keyFadeSpeed; //reduz conforme a velocidade de fading
+        receivedKey.material.emissiveIntensity = Math.max(0, receivedKey.material.emissiveIntensity - emissiveBoost); // reduz a intensidade do brilho
+
+        if (receivedKey.material.opacity <= 0) { // se a opacidade chegar a 0, remove visualmente a chave da cena
+            receivedKey.visible = false;
+            receivedKey.userData.fading = false;
         }
     }
+
+
 }

@@ -5,7 +5,7 @@ const bullets = [];
 let isShooting = false;
 let lastShotTime = 0;
 const fireRate = 500;
-const bulletSpeed = 50;
+const bulletSpeed = 30;
 const maxDistance = 100;
 let gun, crosshairElement;
 let chaingunSprite, shootAction;
@@ -16,6 +16,8 @@ function setupGun(camera) {
    const gunGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 32);
    const gunMaterial =  new THREE.MeshLambertMaterial({color: 0x555555});
    gun = new THREE.Mesh(gunGeometry, gunMaterial);
+   gun.castShadow = true;
+   gun.receiveShadow = true;
    gun.scale.set(2, 2, 2);
    gun.position.set(0, -0.4, -1);
    gun.rotation.set(Math.PI / 2, 0, 0);
@@ -92,7 +94,7 @@ function shoot(scene, camera) {
    const gunWorldPosition = new THREE.Vector3();
    gun.getWorldPosition(gunWorldPosition);
 
-   const barrelOffset = new THREE.Vector3(0, 0, 2);
+   const barrelOffset = new THREE.Vector3(0, 0, -0.1);
    barrelOffset.applyQuaternion(gun.quaternion);
    bullet.position.copy(gunWorldPosition).add(barrelOffset);
 

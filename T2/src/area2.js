@@ -1,7 +1,7 @@
 // environment.js
 import * as THREE from 'three';
 import { createGroundPlaneXZ } from '../../libs/util/util.js';
-import { buildKey, createPlatformWithKey, raisePlatform, updateObject, key, addRectangleWithKey } from './key.js';
+import { buildKey, createPlatformWithKey, updateObject, key, addRectangleWithKey } from './key.js';
 import { controls } from './player.js';
 import { Group } from '../../build/three.module.js';
 
@@ -11,18 +11,21 @@ export const elevatorState = {
   goingUp: false,
   waiting: false,
   targetY: 0,
-  base: null 
+  base: null,
+  nextStep: null
 };
-export let yellowKey, rectangleWithYellowKey;
-let doorIsOpening = false;
+
+export let yellowKey, rectangleWithYellowKey, yellowKeyPlatform;
+
 const doorOpenSpeed = 0.01;
+let doorIsOpening = false;
 let doorStartPosition = new THREE.Vector3();
 let doorTargetPosition = new THREE.Vector3();
-let elevatorBaseStartPosition = new THREE.Vector3();
-let elevatorBaseTargetPosition = new THREE.Vector3();
-let keyFading = false;
+
 let keyFadeSpeed = 0.02;
-let emissiveBoost = 0.05;
+
+let lastElevatorUse = 0;
+const elevatorCooldown = 5000;
 
 // AREA 2 ---------------------------------------------------------------------------
 // Esta seção contém funções relacionadas à Área 2, incluindo a criação da plataforma com elevador
@@ -43,7 +46,7 @@ export function buildPlatformWithElevator(scene, sideSize, frontSize, height, po
     new THREE.MeshLambertMaterial({ color: 0x2F4F4F })
   );
   elevatorBase.name = "elevatorBase";
-  elevatorState.base = elevatorBase; 
+  elevatorState.base = elevatorBase;
   elevatorBase.position.set(0, height / 2, 0);
   elevator.add(elevatorBase);
 
@@ -78,31 +81,58 @@ export function buildPlatformWithElevator(scene, sideSize, frontSize, height, po
   platform.position.set(position.x, position.y, position.z);
   scene.add(platform);
 
-  for (let i = 0; i < 20; i++) {
-    let randomX = THREE.MathUtils.randFloat(-frontSize / 2 + 5, frontSize / 2 - 5);
-    let randomZ = THREE.MathUtils.randFloat(-sideSize / 2 + 10, sideSize / 2 - 10);
-    let randomY = THREE.MathUtils.randFloat(2, 4);
-    let randomHeight = THREE.MathUtils.randFloat(4, 15);
+  //Adiciona os retângulos de diferentes alturas
+  addMultipleRectangles(platform, sideSize, frontSize, height);
 
-    platform.add(addRectangle(4, randomHeight, 4, { x: randomX, y: position.y + height + randomY, z: randomZ }, 0x4B3621)); // Base da plataforma
-  }
-
-  //retangulos de onde sairão os inimigos
+  //Retangulos com posições dos inimigos
   let rectangleEnemieOne = platform.add(addRectangle(4, 2, 4, { x: 0, y: 10, z: 40 }, 0x4B3621)); // Esquerda
   let rectangleEnemieTwo = platform.add(addRectangle(4, 2, 4, { x: 40, y: 15, z: 0 }, 0x4B3621)); // Direita
   let rectangleEnemieThree = platform.add(addRectangle(4, 2, 4, { x: -30, y: 18, z: 30 }, 0x4B3621)); // Traseira
 
-  // cria o retangulo que vai ficar com a chave
-  let blockMesh = addRectangle(4, 2, 4, { x: 0, y: -3, z: 0 }, "blue");
-  let rectangleWithYellowKey = addRectangleWithKey(blockMesh, receivedKey, platform);
+  // Cria o retângulo com suporte para a chave
+  const keySupport = createKeySupport(new THREE.Vector3(0, 0, 0));
+  keySupport.name = "keySupport";
+
+  let rectangleWithYellowKey = addRectangleWithKey(keySupport, receivedKey, platform);
+  yellowKeyPlatform = keySupport;
+
+  keySupport.add(rectangleWithYellowKey);
+  keySupport.position.set(0, 0, 0);
+
+  platform.add(keySupport);
 
   return platform;
 
 }
 
+//Cria suporte para a chave
+function createKeySupport(position) {
+  const group = new THREE.Group();
+
+  // Material padrão
+  const material = new THREE.MeshLambertMaterial({ color: 0x4B3621 });
+
+  // Bloco superior (tampa)
+  const topGeometry = new THREE.BoxGeometry(5, 14, 5);
+  const top = new THREE.Mesh(topGeometry, material);
+  top.name = "topBlock";
+  top.position.y = 9.5;
+  group.add(top);
+
+  // Bloco inferior (base de apoio)
+  const bottomGeometry = new THREE.BoxGeometry(5, 4, 5);
+  const bottom = new THREE.Mesh(bottomGeometry, material);
+  bottom.name = "bottomBlock";
+  bottom.position.y = -4;
+  group.add(bottom);
+
+  group.position.copy(position);
+
+  return group;
+}
 
 
-// PORTA ---------------------------------------------------------------------------
+// PORTA DO ELEVADOR ---------------------------------------------------------------------------
 // Esta seção contém funções relacionadas à porta do elevador, incluindo sua criação, animação e interação com o jogador
 
 
@@ -133,7 +163,7 @@ export function createElevatorDoor(x, y, z, doorWidth, doorHeight, doorDepth) {
 
   //bloco que vai ficar com a chave
   const activationBlock = new THREE.Mesh(
-    new THREE.BoxGeometry(3, 0.5, 1),
+    new THREE.BoxGeometry(3, 0.5, 2),
     new THREE.MeshLambertMaterial({ color: 0x4B3621 })
   );
   activationBlock.position.set(doorGroup.position.x, 1, doorGroup.position.z - 0.5);
@@ -152,34 +182,34 @@ export function createElevatorDoor(x, y, z, doorWidth, doorHeight, doorDepth) {
 //Tem como objetivo colocar a chave no bloco de ativação e setar a porta como desbloqueada
 //Esta função é chamada no loop de renderização, quando o jogador está próximo da porta e tem chave da Área 1
 export function placeKeyAndUnlockDoor(scene, controls) {
-    const activationBlock = scene.getObjectByName("activationBlock");
+  const activationBlock = scene.getObjectByName("activationBlock");
 
-    //Se o bloco de ativação existir
-    if (activationBlock) {
+  //Se o bloco de ativação existir
+  if (activationBlock) {
 
-        const blockPosition = new THREE.Vector3();
-        activationBlock.getWorldPosition(blockPosition);
+    const blockPosition = new THREE.Vector3();
+    activationBlock.getWorldPosition(blockPosition);
 
-        const platformWithKey = scene.getObjectByName("platformWithKeyColorRed");
+    const platformWithKey = scene.getObjectByName("platformWithKeyColorRed");
 
-        const distanceToDoor = controls.getObject().position.distanceTo(blockPosition);
-        //console.log("Distância até a porta:", distanceToDoor);
+    const distanceToDoor = controls.getObject().position.distanceTo(blockPosition);
+    //console.log("Distância até a porta:", distanceToDoor);
 
-        // Se o jogador estiver próximo o suficiente da porta, ativa a chave
-        if (distanceToDoor < 5) {
-            key.visible = true;
-            platformWithKey.remove(key);
-            activationBlock.add(key);
-            key.scale.set(0.5, 0.5, 0.5);
-            key.position.set(0, 1, -0.5);
+    // Se o jogador estiver próximo o suficiente da porta, ativa a chave
+    if (distanceToDoor < 5) {
+      key.visible = true;
+      platformWithKey.remove(key);
+      activationBlock.add(key);
+      key.scale.set(0.5, 0.5, 0.5);
+      key.position.set(0, 1, -0.5);
 
-            while (key.material.opacity < 1) {
-                key.material.opacity += keyFadeSpeed;
-            }
+      while (key.material.opacity < 1) {
+        key.material.opacity += keyFadeSpeed;
+      }
 
-            controls.getObject().unlockedDoor = true; //demonstra que a porta foi desbloqueada
-        }
+      controls.getObject().unlockedDoor = true; //demonstra que a porta foi desbloqueada
     }
+  }
 }
 
 
@@ -187,15 +217,15 @@ export function placeKeyAndUnlockDoor(scene, controls) {
 //Esta função é chamada no loop de renderização
 export function openDoor(scene) {
 
-    let doorGroup = scene.getObjectByName("elevatorDoor");
-    if (doorIsOpening) return;
+  let doorGroup = scene.getObjectByName("elevatorDoor");
+  if (doorIsOpening) return;
 
-    doorIsOpening = true;
+  doorIsOpening = true;
 
-    let doorOpenDistance = doorGroup.parent.parent.userData.elevatorLength;
+  let doorOpenDistance = doorGroup.parent.parent.userData.elevatorLength;
 
-    doorStartPosition.copy(doorGroup.position);
-    doorTargetPosition.set(doorGroup.position.x - doorOpenDistance, doorGroup.position.y, doorGroup.position.z - 0.25);
+  doorStartPosition.copy(doorGroup.position);
+  doorTargetPosition.set(doorGroup.position.x - doorOpenDistance, doorGroup.position.y, doorGroup.position.z - 0.25);
 
 }
 
@@ -203,18 +233,18 @@ export function openDoor(scene) {
 //Esta função é chamada no loop de renderização
 export function updateDoor(scene) {
 
-    let doorGroup = scene.getObjectByName("elevatorDoor");
+  let doorGroup = scene.getObjectByName("elevatorDoor");
 
-    if (!doorIsOpening) return;
+  if (!doorIsOpening) return;
 
-    //Movimenta suavemente a porta na direção do alvo
-    doorGroup.position.lerp(doorTargetPosition, doorOpenSpeed);
+  //Movimenta suavemente a porta na direção do alvo
+  doorGroup.position.lerp(doorTargetPosition, doorOpenSpeed);
 
-    //Para animação quando chega perto do alvo e atualiza a posição final
-    if (doorGroup.position.distanceTo(doorTargetPosition) < 0.01) {
-        doorGroup.position.copy(doorTargetPosition);
-        doorIsOpening = false;
-    }
+  //Para animação quando chega perto do alvo e atualiza a posição final
+  if (doorGroup.position.distanceTo(doorTargetPosition) < 0.01) {
+    doorGroup.position.copy(doorTargetPosition);
+    doorIsOpening = false;
+  }
 }
 
 
@@ -223,19 +253,15 @@ export function updateDoor(scene) {
 // Esta seção contém funções relacionadas ao elevador da Área 2, incluindo sua movimentação e interação com o jogador
 
 
-//Função para atualizar o elevador
-//Esta função é chamada no loop de renderização
+//Função para atualizar o comportamento do elevador
+//Esta função é chamada no loop de renderização e obedece ao estado do elevador
 export function updateElevator() {
-  
+
   const { moving, base, targetY } = elevatorState;
 
   if (!moving || !base) return;
 
-  base.position.y = THREE.MathUtils.lerp(
-    base.position.y,
-    targetY,
-    0.015
-  );
+  base.position.y = THREE.MathUtils.lerp(base.position.y, targetY, 0.015);
 
   if (Math.abs(base.position.y - targetY) < 0.05) {
     base.position.y = targetY;
@@ -249,52 +275,54 @@ export function updateElevator() {
       elevatorState.waiting = true;
     }
 
-    console.log("elevador chegou ao destino:", targetY);
+    //console.log("elevador chegou ao destino:", targetY);
   }
 }
 
 
-//Função para descer o elevador
-//Chamada no render() assim que o jogador abre a porta do elevador
-// export function downElevator(scene) {
+//Função para verificar se o jogador está em cima do elevador a partir de uma caixa delimitadora
+export function isPlayerOnTop(playerObject, base, scene) {
 
-//   let elevatorBase = scene.getObjectByName("elevatorBase");
-//   if (!elevatorBase) return;
+  const playerPos = playerObject.position.clone(); // Posição do jogador
 
-//   elevatorMoving = true;
+  const baseBox = new THREE.Box3().setFromObject(base); // Cria uma caixa delimitadora para a base do elevador
 
-//   let elevatorTargetY = 0.1; // ele vai até o chão
+  //const helper = new THREE.Box3Helper(baseBox, new THREE.Color(0xff0000));
+  //scene.add(helper);
 
-//   elevatorBaseStartPosition.copy(elevatorBase.position);
-//   elevatorBaseTargetPosition.set(elevatorBase.position.x, elevatorTargetY, elevatorBase.position.z);
-//   //console.log("Dados do elevador:", JSON.stringify(elevatorBase));
+  // Boxes que vão simular os pés do jogador
+  const feetBox = new THREE.Box3(
+    new THREE.Vector3(playerPos.x - 0.4, playerPos.y - 2.0, playerPos.z - 0.4),
+    new THREE.Vector3(playerPos.x + 0.4, playerPos.y - 2.0, playerPos.z + 0.4)
+  );
 
-// }
+  //const helper2 = new THREE.Box3Helper(feetBox, new THREE.Color(0x00ff00));
+  //scene.add(helper2);
+
+  return baseBox.intersectsBox(feetBox); // se o "pé" intersecta o elevador, retorna true
+}
 
 
-// Função para verificar se o jogador está em cima do elevador
-export function isPlayerOnTop(playerObject, base) {
+// Função para verificar se o jogador pode usar o elevador dado um intervalo definido 
+export function canUseElevator() {
 
-   const playerPos = playerObject.position.clone(); // Posição do jogador
-   const baseBox = new THREE.Box3().setFromObject(base); // Cria uma caixa delimitadora para a base do elevador
-   elevatorState.moving = true;
+  const now = performance.now();
 
-   // Pequeno box nos pés do jogador (altura baixa para evitar falsos positivos)
-   const feetBox = new THREE.Box3(
-      new THREE.Vector3(playerPos.x - 0.4, playerPos.y - 1.9, playerPos.z - 0.4),
-      new THREE.Vector3(playerPos.x + 0.4, playerPos.y - 1.7, playerPos.z + 0.4)
-   );
+  if (now - lastElevatorUse > elevatorCooldown) {
+    lastElevatorUse = now;
+    return true;
+  }
 
-   return baseBox.intersectsBox(feetBox);
+  return false;
 }
 
 
 
 // RETANGULOS ---------------------------------------------------------------------------
-// Esta seção contém funções relacionadas a retângulos que são usados como plataformas ou obstáculos na Area
+// Esta seção contém funções relacionadas a retângulos que são usados como obstáculos na Area 2
 
 
-// Função para adicionar um retângulo ao cenário
+// Função para adicionar um retângulo simples ao cenário
 // Esta função é usada para criar retângulos que podem ser usados como plataformas ou obstáculos na Area 2
 export function addRectangle(width, height, depth, position, color) {
 
@@ -312,35 +340,58 @@ export function addRectangle(width, height, depth, position, color) {
     depth: depth
   };
 
-
   return rectangle;
 
 }
 
-//Função que ergue o retangulo com a chave da area 2
-// Esta função é chamada quando o jogador derrota os inimigos da área 2 e desbloqueia a chave
-export function raiseRectangleWithKey(rectangle) {
-    if (!rectangle) return;
-    rectangle.children[1].visible = true; // Torna a chave invisível após ser coletada
-    rectangle.children[1].rotateX(0.01); // Animação de rotação da chave
-    rectangle.position.y = THREE.MathUtils.lerp(rectangle.position.y, 20, 0.05);
+function addMultipleRectangles(platform, sideSize, frontSize, height) {
+
+  platform.add(addRectangle(4, 10, 4, { x: (-frontSize / 2 + 5) + 6, y: height + 5, z: (-sideSize / 2 + 5) + 8 }, 0x4B3621));
+  platform.add(addRectangle(4, 20, 4, { x: (-frontSize / 2 + 5) + 10, y: height + 10, z: (-sideSize / 2 + 5) + 25 }, 0x4B3621));
+  platform.add(addRectangle(4, 16, 4, { x: (-frontSize / 2 + 5) + 5, y: height + 8, z: (-sideSize / 2 + 5) + 38 }, 0x4B3621));
+  platform.add(addRectangle(4, 18, 4, { x: (-frontSize / 2 + 5) + 18, y: height + 5, z: (-sideSize / 2 + 9) + 55 }, 0x4B3621));
+  platform.add(addRectangle(4, 13, 4, { x: (-frontSize / 2 + 5) + 23, y: height + 6, z: (-sideSize / 2 + 5) + 10 }, 0x4B3621));
+  platform.add(addRectangle(4, 14, 4, { x: (-frontSize / 2 + 5) + 29, y: height + 7, z: (-sideSize / 2 + 5) + 32 }, 0x4B3621));
+  platform.add(addRectangle(4, 6, 4, { x: (-frontSize / 2 + 5) + 36, y: height + 3, z: (-sideSize / 2 + 5) + 48 }, 0x4B3621));
+  platform.add(addRectangle(4, 14, 4, { x: (-frontSize / 2 + 5) + 47, y: height + 7, z: (-sideSize / 2 + 5) }, 0x4B3621));
+  platform.add(addRectangle(4, 10, 4, { x: (-frontSize / 2 + 5) + 33, y: height + 5, z: (-sideSize / 2 + 5) }, 0x4B3621));
+
+  platform.add(addRectangle(4, 10, 4, { x: (-frontSize / 2 + 5) + 6, y: height + 5, z: (-sideSize / 2 + 5) + 38 }, 0x4B3621));
+  platform.add(addRectangle(4, 20, 4, { x: (-frontSize / 2 + 5) + 10, y: height + 10, z: (-sideSize / 2 + 5) + 55 }, 0x4B3621));
+  platform.add(addRectangle(4, 16, 4, { x: (-frontSize / 2 + 5) + 5, y: height + 8, z: (-sideSize / 2 + 5) + 68 }, 0x4B3621));
+  platform.add(addRectangle(4, 18, 4, { x: (-frontSize / 2 + 5) + 18, y: height + 9, z: (-sideSize / 2 + 9) + 85 }, 0x4B3621));
+  platform.add(addRectangle(4, 18, 4, { x: (-frontSize / 2 + 5) + 40, y: height + 9, z: (-sideSize / 2 + 9) + 75 }, 0x4B3621));
+  platform.add(addRectangle(4, 13, 4, { x: (-frontSize / 2 + 5) + 23, y: height + 6, z: (-sideSize / 2 + 5) + 40 }, 0x4B3621));
+  platform.add(addRectangle(4, 6, 4, { x: (-frontSize / 2 + 5) + 22, y: height + 3, z: (-sideSize / 2 + 5) + 62 }, 0x4B3621));
+  platform.add(addRectangle(4, 6, 4, { x: (-frontSize / 2 + 5) + 30, y: height + 3, z: (-sideSize / 2 + 5) + 78 }, 0x4B3621));
+  platform.add(addRectangle(4, 10, 4, { x: (-frontSize / 2 + 5) + 47, y: height + 5, z: (-sideSize / 2 + 5) }, 0x4B3621));
+  platform.add(addRectangle(4, 10, 4, { x: (-frontSize / 2 + 5) + 33, y: height + 5, z: (-sideSize / 2 + 5) }, 0x4B3621));
+  platform.add(addRectangle(4, 18, 4, { x: (-frontSize / 2 + 5) + 40, y: height + 9, z: (-sideSize / 2 + 9) + 88 }, 0x4B3621));
+  platform.add(addRectangle(4, 24, 4, { x: (-frontSize / 2 + 5), y: height + 12, z: (-sideSize / 2 + 9) + 88 }, 0x4B3621));
+  platform.add(addRectangle(4, 14, 4, { x: (-frontSize / 2 + 5), y: height + 7, z: (-sideSize / 2 + 9) + 70 }, 0x4B3621));
+
+  platform.add(addRectangle(4, 10, 4, { x: -((-frontSize / 2 + 5) + 6), y: height + 5, z: (-sideSize / 2 + 5) + 8 }, 0x4B3621));
+  platform.add(addRectangle(4, 20, 4, { x: -((-frontSize / 2 + 5) + 10), y: height + 10, z: (-sideSize / 2 + 5) + 25 }, 0x4B3621));
+  platform.add(addRectangle(4, 16, 4, { x: -((-frontSize / 2 + 5) + 5), y: height + 8, z: (-sideSize / 2 + 5) + 38 }, 0x4B3621));
+  platform.add(addRectangle(4, 18, 4, { x: -((-frontSize / 2 + 5) + 18), y: height + 5, z: (-sideSize / 2 + 9) + 55 }, 0x4B3621));
+  platform.add(addRectangle(4, 18, 4, { x: -((-frontSize / 2 + 5) + 23), y: height + 9, z: (-sideSize / 2 + 5) + 10 }, 0x4B3621));
+  platform.add(addRectangle(4, 14, 4, { x: -((-frontSize / 2 + 5) + 29), y: height + 7, z: (-sideSize / 2 + 5) + 32 }, 0x4B3621));
+  platform.add(addRectangle(4, 6, 4, { x: -((-frontSize / 2 + 5) + 36), y: height + 3, z: (-sideSize / 2 + 5) + 48 }, 0x4B3621));
+  platform.add(addRectangle(4, 10, 4, { x: -((-frontSize / 2 + 5) + 47), y: height + 5, z: (-sideSize / 2 + 5) }, 0x4B3621));
+  platform.add(addRectangle(4, 10, 4, { x: -((-frontSize / 2 + 5) + 33), y: height + 5, z: (-sideSize / 2 + 5) }, 0x4B3621));
+
+  platform.add(addRectangle(4, 10, 4, { x: -((-frontSize / 2 + 5) + 6), y: height + 5, z: ((-sideSize / 2 + 5) + 38) }, 0x4B3621));
+  platform.add(addRectangle(4, 20, 4, { x: -((-frontSize / 2 + 5) + 10), y: height + 10, z: (-sideSize / 2 + 5) + 55 }, 0x4B3621));
+  platform.add(addRectangle(4, 16, 4, { x: -((-frontSize / 2 + 5) + 5), y: height + 8, z: (-sideSize / 2 + 5) + 68 }, 0x4B3621));
+  platform.add(addRectangle(4, 18, 4, { x: -((-frontSize / 2 + 5) + 18), y: height + 9, z: (-sideSize / 2 + 9) + 85 }, 0x4B3621));
+  platform.add(addRectangle(4, 18, 4, { x: -((-frontSize / 2 + 5) + 40), y: height + 9, z: (-sideSize / 2 + 9) + 75 }, 0x4B3621));
+  platform.add(addRectangle(4, 13, 4, { x: -((-frontSize / 2 + 5) + 23), y: height + 6, z: (-sideSize / 2 + 5) + 40 }, 0x4B3621));
+  platform.add(addRectangle(4, 6, 4, { x: -((-frontSize / 2 + 5) + 22), y: height + 3, z: (-sideSize / 2 + 5) + 62 }, 0x4B3621));
+  platform.add(addRectangle(4, 6, 4, { x: -((-frontSize / 2 + 5) + 30), y: height + 3, z: (-sideSize / 2 + 5) + 78 }, 0x4B3621));
+  platform.add(addRectangle(4, 10, 4, { x: -((-frontSize / 2 + 5) + 47), y: height + 5, z: (-sideSize / 2 + 5) }, 0x4B3621));
+  platform.add(addRectangle(4, 10, 4, { x: -((-frontSize / 2 + 5) + 33), y: height + 5, z: (-sideSize / 2 + 5) }, 0x4B3621));
+  platform.add(addRectangle(4, 18, 4, { x: -((-frontSize / 2 + 5) + 40), y: height + 9, z: (-sideSize / 2 + 9) + 88 }, 0x4B3621));
+  platform.add(addRectangle(4, 22, 4, { x: -(-frontSize / 2 + 5), y: height + 11, z: (-sideSize / 2 + 9) + 88 }, 0x4B3621));
+  platform.add(addRectangle(4, 14, 4, { x: -(-frontSize / 2 + 5), y: height + 7, z: (-sideSize / 2 + 9) + 70 }, 0x4B3621));
+
 }
-
-
-
-//APAGAR DEPOIS DE CONFERIR
-// export function updateElevatorBase(scene) {
-//   let elevatorBase = scene.getObjectByName("elevatorBase");
-//   if (!elevatorBase || !elevatorMoving) return;
-
-//   //Movimenta suavemente a base do elevador na direção do alvo
-//   elevatorBase.position.lerp(elevatorBaseTargetPosition, doorOpenSpeed);
-//   //console.log("Elevador:", elevatorBase.position);
-
-//   //Para animação quando chegou perto
-//   if (elevatorBase.position.distanceTo(elevatorBaseTargetPosition) < 0.01) {
-//     elevatorBase.position.copy(elevatorBaseTargetPosition);
-//     elevatorMoving = false;
-//     //console.log("Elevador parado na posição:", elevatorBase.position);
-//   }
-// }

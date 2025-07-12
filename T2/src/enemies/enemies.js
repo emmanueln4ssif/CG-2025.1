@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { LostSoul } from './lostSoul.js';
 import { Cacodemon } from './cacodemon.js'; // Descomente quando for adicionar
 
-const allEnemies = [];
+export const allEnemies = [];
 const raycaster = new THREE.Raycaster();
 
 export function createHealthBar() {
@@ -20,11 +20,11 @@ export function createHealthBar() {
         new THREE.PlaneGeometry(barWidth, barHeight),
         new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true })
     );
-    
+
     const healthBar = new THREE.Group();
     healthBar.add(bgBar);
     healthBar.add(healthBarMesh);
-    
+
     // Adiciona uma referência à malha da vida para ser facilmente acessada depois
     healthBar.healthMesh = healthBarMesh;
 
@@ -100,26 +100,26 @@ function checkBulletCollision(enemy, playerBullets, scene) {
         const bulletData = playerBullets[i];
         const bulletMesh = bulletData.mesh;
         console.log(`%cVerificando colisão com a bala: ${bulletMesh.uuid}`, 'color: orange; font-weight: bold;');
-        
+
         // Cria uma caixa de colisão para a bala
         const bulletBox = new THREE.Box3().setFromObject(bulletMesh);
 
         // Verifica se a caixa da bala intercepta a caixa do inimigo
         if (enemyBox.intersectsBox(bulletBox)) {
             console.log(`%cACERTOU! HP do inimigo: ${enemy.hp - bulletMesh.userData.damage}`, 'color: yellow; font-weight: bold;');
-            
+
             updateHealthBar(enemy.healthBar, enemy.hp - bulletMesh.userData.damage, enemy.maxHp);
             // Causa dano no inimigo
             if (enemy.takeDamage && bulletMesh.userData.damage) {
                 enemy.takeDamage(bulletMesh.userData.damage);
             }
-            
+
             // Remove a bala da cena e do array
             scene.remove(bulletMesh);
             playerBullets.splice(i, 1);
 
             // Sai do loop, pois a bala já atingiu um alvo
-            break; 
+            break;
         }
     }
 }
@@ -129,7 +129,7 @@ export function hasLineOfSight(start, end, colliders, selfMesh) {
     raycaster.set(start, direction);
     const intersects = raycaster.intersectObjects(colliders, true);
 
-    for(const intersect of intersects) {
+    for (const intersect of intersects) {
         // Ignora a si mesmo
         if (intersect.object === selfMesh || intersect.object.parent === selfMesh) {
             continue;
@@ -141,4 +141,27 @@ export function hasLineOfSight(start, end, colliders, selfMesh) {
     }
     // Se o loop terminar, significa que não há obstáculos no caminho
     return true;
+}
+
+// Função para verificar se o jogador derrotou os inimigos de cada área
+// Retorna um objeto com as propriedades defeatedEnemiesArea1 e defeatedEnemiesArea2
+export function checkDefeatedEnemies(player) {
+    
+    let hasLostSoul = false;
+    let hasCacodemon = false;
+
+    for (let enemy of allEnemies) {
+        if (enemy.constructor.name === 'LostSoul') hasLostSoul = true;
+        if (enemy.constructor.name === 'Cacodemon') hasCacodemon = true;
+    }
+
+    if (!hasLostSoul) player.defeatedEnemiesArea1 = true;
+    if (!hasCacodemon) player.defeatedEnemiesArea2 = true;
+
+
+    //console.log("derrotados:");
+    //console.log("area 1:", player.defeatedEnemiesArea1);
+    //console.log("area 2:", player.defeatedEnemiesArea2);
+
+    return { defeatedEnemiesArea1: player.defeatedEnemiesArea1, defeatedEnemiesArea2: player.defeatedEnemiesArea2 };
 }

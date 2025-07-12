@@ -1,7 +1,7 @@
 // environment.js
 import * as THREE from 'three';
 import { createGroundPlaneXZ } from '../../libs/util/util.js';
-import { buildKey, createPlatformWithKey, raisePlatform, updateObject, key, addRectangleWithKey } from './key.js';
+import { buildKey, createPlatformWithKey, updateObject, key, addRectangleWithKey } from './key.js';
 import { controls } from './player.js';
 import { Group } from '../../build/three.module.js';
 

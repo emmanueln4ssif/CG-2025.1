@@ -2,13 +2,14 @@ import * as THREE from 'three';
 import { Clock } from 'three';
 import { initRenderer, initCamera, initDefaultBasicLight, setDefaultMaterial, onWindowResize, createGroundPlaneXZ } from "../../libs/util/util.js";
 import { setupEnvironment } from './environment.js';
-import { raisePlatform, updatePlatform, key, platform, checkKeyPickup } from './key.js';
+import { key, platform, checkKeyPickup, updatePlatformMovement, raisePlatformTo, yellowKey, redKey } from './key.js';
 import { setupPlayer, updatePlayer, controls, player } from './player.js';
 import { bullets, setupGun, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired, setupChaingun, setupWeaponSwitching } from './guns.js';
-import { placeKeyAndUnlockDoor, openDoor, updateDoor, raiseRectangleWithKey, updateElevator, isPlayerOnTop, elevatorState } from './area2.js';
+import { placeKeyAndUnlockDoor, openDoor, updateDoor, updateElevator, isPlayerOnTop, elevatorState, yellowKeyPlatform, canUseElevator } from './area2.js';
 import { sunLight, ambientLight } from './light.js';
-import { createEnemy, updateEnemies } from './enemies/enemies.js';
-//import { getEnemyProjectiles } from './enemies/cacodemon.js'
+import { createEnemy, updateEnemies, allEnemies, checkDefeatedEnemies } from './enemies/enemies.js';
+import { LostSoul } from './enemies/lostSoul.js';
+import { Cacodemon } from './enemies/cacodemon.js';
 import { SpriteMixer } from "../sprites/SpriteMixer.js";
 
 // --- Cena Básica ---
@@ -40,7 +41,7 @@ setupEnvironment(scene, collisionObjects, sunLight);
 // Setup do personagem e câmera
 setupPlayer(camera, scene, renderer);
 setupGun(camera);
-setupWeaponSwitching(); 
+setupWeaponSwitching();
 setupChaingun(camera, spriteMixer)
 setupCrosshair();
 handleShootingState();
@@ -59,20 +60,29 @@ createEnemy('cacodemon', new THREE.Vector3(-25, 25, 180), scene, collisionObject
 window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
 
 // --- Plataforma com Chave ---
-let keyFading = false;
-let keyFadeSpeed = 0.02;
-let emissiveBoost = 0.05;
-controls.getObject().hasKey;
-let doorIsOpening = false;
+let keyFading = false; // Variável para controlar o desvanecimento da chave
+let keyFadeSpeed = 0.02; // Velocidade de desvanecimento da chave
+let emissiveBoost = 0.05; // Intensidade do brilho da chave
+controls.getObject().hasKey; // Variável para controlar se o jogador pegou a chave e ainda não a usou
+let doorIsOpening = false; // Variável para controlar se a porta está abrindo
+let platformKey1Raised = false; // Variável para controlar se a plataforma com a chave vermelha já foi levantada
+let platformKey2Raised = false; // Variável para controlar se a plataforma com a chave amarela já foi levantada
+let doorIsOpen = false;
 
 // -- Elevador ---
 export let elevatorBase = scene.getObjectByName("elevatorBase"); // atribuído ao construir a plataforma
-export let elevatorTargetY = 0;
-export let elevatorMoving = false;
-export let elevatorGoingDown = false;
-export let elevatorGoingUp = false;
-export let elevatorWaiting = false;
+export let elevatorTargetY = 0; // posição alvo inicial do elevador
+export let elevatorMoving = false; // variável para controlar se o elevador está se movendo
+export let elevatorGoingDown = false; // variável para controlar se o elevador está indo para baixo
+export let elevatorGoingUp = false; // variável para controlar se o elevador está indo para cima
+export let elevatorWaiting = false; // variável para controlar se o elevador está esperando
 
+const desiredWorldY = 40;
+
+const currentWorldPosition = new THREE.Vector3();
+yellowKey.getWorldPosition(currentWorldPosition);
+
+console.log("✅ Nova posição local aplicada:", yellowKey.position);
 
 // --- Renderização ---
 function render() {
@@ -94,73 +104,88 @@ function render() {
    // Atualização dos inimigos
    updateEnemies(delta, controls.getObject(), camera, scene, collisionObjects, bullets);
 
-   // Atualiza ambiente (inclui animação da plataforma)
-   updatePlatform(collisionObjects);
+   // Atualização da porta da área 2
+   updateDoor(scene); 
 
-   // ajustar com parte do Emerson [...] derrotou os inimigos da area 1...
-   controls.getObject().defeatedEnemiesArea1 = true;
-   //raisePlatform(key)
+   // Atualização do elevador da área 2
+   updateElevator(); 
 
-   // Verifica colisão com chave
-   if (key) {
-      key.rotation.x += 0.01;
-      checkKeyPickup(controls, platform, key, scene);
+   // Atualização da plataforma com as chaves vermelha e amarela
+   updatePlatformMovement(); 
+
+   //Verifica se os inimigos de cada uma das areas foi derrotado
+   const checkDefeated = checkDefeatedEnemies(controls.getObject());
+
+   //Se derrotou os inimigos da area 1, sobe a plataforma com a chave vermelha...
+   if (checkDefeated.defeatedEnemiesArea1 === true && !platformKey1Raised) {
+      raisePlatformTo(7, platform);
+      platformKey1Raised = true;
    }
 
-   // Verifica se o jogador pegou a chave, se sim, coloca a chave no bloco de ativação e desbloqueia a porta
-   if (controls.getObject().hasKey) {
+   //Se derrotou os inimigos da area 2, levanta o retângulo com a chave amarela...
+   if (checkDefeated.defeatedEnemiesArea2 === true && !platformKey2Raised) {
+      raisePlatformTo(13, yellowKeyPlatform);
+      platformKey2Raised = true;
+   }
+
+   // Verifica há chave vermelha na plataforma e orienta rotação e verifica se o jogador pegou esta chave
+   if (redKey) {
+      redKey.rotation.x += 0.01;
+      checkKeyPickup(controls, platform, redKey, scene);
+   }
+
+   // Verifica há chave amarela na plataforma e orienta rotação e verifica se o jogador pegou esta chave
+   if (yellowKey) {
+      yellowKey.rotation.x += 0.01;
+      checkKeyPickup(controls, yellowKeyPlatform, yellowKey, scene);
+   }
+
+   // Verifica se o jogador possui a chave vermelha e se aproximou o suficiente da porta, se sim, coloca a chave no bloco de ativação e a desbloqueia 
+   if (controls.getObject().hasRedKey) {
       placeKeyAndUnlockDoor(scene, controls);
    }
 
    // Verifica se o jogador desbloqueou a porta, se sim, abre a porta e move o elevador para baixo
-   if (controls.getObject().hasKey && controls.getObject().unlockedDoor && !doorIsOpening) {
+   if (controls.getObject().hasRedKey && controls.getObject().unlockedDoor && !doorIsOpening && !doorIsOpen) {
 
       openDoor(scene);
       doorIsOpening = true;
+      doorIsOpen = true;
+
       elevatorState.goingDown = true;
       elevatorState.targetY = - (elevatorState.base.geometry.parameters.height / 2) + 0.1;
       elevatorState.moving = true;
 
-      controls.getObject().hasKey = false; // chave já foi utilizada, seta como falsa para organizar o comportamento da chave 2
    }
 
-   updateDoor(scene);
-   updateElevator();
+   // Verifica se o elevador está parado, o jogador está em cima dele e se deu o tempo para que ele possa voltar a se movimentar
+   // As atualizações daqui ditam o comportamento do updateElevator()
+   if (elevatorState.waiting && !elevatorState.moving && isPlayerOnTop(controls.getObject(), elevatorState.base, scene) && canUseElevator()) {
 
-   // Verifica se o elevador está parado no chão e se o jogador está em cima dele, se sim, sobe o elevador até o nível da plataforma
-   if (elevatorState.waiting && !elevatorState.moving && isPlayerOnTop(controls.getObject(), elevatorState.base)) {
-      
-      elevatorState.targetY = elevatorState.base.geometry.parameters.height / 2;
-      elevatorState.moving = true;
-      elevatorState.goingUp = true;
-      elevatorState.waiting = false;
-      
-      //console.log("jogador está em cima do elevador. subindo...");
-      // //verifica se quer subir o elevador pela pos y da base
-      // console.log(elevatorBase.position.y);
+      const currentY = elevatorState.base.position.y;
+      const bottomY = - (elevatorState.base.geometry.parameters.height / 2) + 0.1;
+      const topY = elevatorState.base.geometry.parameters.height / 2;
 
-      // if(elevatorBase.position.y < 2){
-      //    elevatorState.targetY = elevatorState.base.geometry.parameters.height / 2;
-      //    elevatorState.goingUp = true;
-      //    elevatorState.goingDown = false;
-      // } else {
-      //    elevatorState.targetY = -3.9; // volta para o chão
-      //    elevatorState.goingUp = false;
-      //    elevatorState.goingDown = true;
-      // }
-      // elevatorState.moving = true;
-      // elevatorState.waiting = false;
+      // Se está no chão, sobe
+      if (Math.abs(currentY - bottomY) < 0.05) {
+         elevatorState.targetY = topY;
+         elevatorState.goingUp = true;
+         elevatorState.waiting = false;
+         elevatorState.moving = true;
+      }
+
+      // Se está no topo, desce
+      else if (Math.abs(currentY - topY) < 0.05) {
+         elevatorState.targetY = bottomY;
+         elevatorState.goingDown = true;
+         elevatorState.waiting = false;
+         elevatorState.moving = true;
+      }
+
    }
 
-   // ajustar com parte do Emerson [...] derrotou os inimigos da area 2...
-   controls.getObject().defeatedEnemiesArea2 = true; // Simulando que o jogador derrotou os inimigos da área 2
+  
 
-   // Levanta o retângulo com a chave amarela se o jogador desbloqueou a porta e derrotou os inimigos da área 2
-   let rectangle = scene.getObjectByName("rectangleWithKey");
-
-   if (controls.getObject().unlockedDoor && controls.getObject().defeatedEnemiesArea2) {
-      raiseRectangleWithKey(rectangle);
-   }
 
    spriteMixer.update(delta); // animação dos sprites
 
@@ -169,14 +194,13 @@ function render() {
    requestAnimationFrame(render);
 }
 
-//teste para levantar a plataforma com a tecla 'E' (APAGAR DEPOIS)
+//teste para levantar a chave vermelha com a tecla 'E' (em caso de erro na animação)
 window.addEventListener('keydown', (event) => {
-   if (event.key == 'e') {
-      console.log("⏫ Tecla 'E' pressionada: plataforma com chave vermelha subindo");
-      raisePlatform(key, 7);
+   if (event.key === 'e') {
+      console.log("⏫ Tecla 'E' pressionada");
+      raisePlatformTo(6, platform); // altura desejada
    }
 });
-
 
 // Iniciar o loop de renderização
 render();

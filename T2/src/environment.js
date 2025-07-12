@@ -1,7 +1,7 @@
 // environment.js
 import * as THREE from 'three';
 import { createGroundPlaneXZ } from '../../libs/util/util.js';
-import { buildKey, createPlatformWithKey, raisePlatform, updateObject, key, addRectangleWithKey } from './key.js';
+import { buildKey, createPlatformWithKey, updateObject, key, addRectangleWithKey } from './key.js';
 import { controls } from './player.js';
 import { Group } from '../../build/three.module.js';
 import { addGreekColumnsToPlatform, createGreekFrontColumns } from './area1.js';
@@ -27,11 +27,13 @@ export function setupEnvironment(scene, collisionObjects, light) {
   addPlatformToScene(scene, area1, collisionObjects);
   addGreekColumnsToPlatform(area1, collisionObjects);
   createGreekFrontColumns(scene, { x: 160, y: 4, z: 107 }, 0.45, collisionObjects);
-  createPlatformWithKey(scene, area1, 1, 0xE2725B, "Red", collisionObjects);
+  createPlatformWithKey(scene, area1, 1, 0xE2725B, "Red", collisionObjects); // Cria plataforma com chave vermelha
 
   // Area 2: Plataforma com porta e parte elevatória
-  yellowKey = buildKey({ x: 0, y: 6, z: 22 }, scene, "Yellow", "0xff6699", 80, collisionObjects);
-  area2 = buildPlatformWithElevator(scene, 100, 120, 8, { x: 5, y: -0.1, z: 150 }, 10, 10, 0x654321, yellowKey);
+  yellowKey = buildKey({ x: 0, y: 0, z: 0}, scene, "Yellow", "0xff6699", 80, collisionObjects); // Cria a chave amarela
+  yellowKey.name = "yellowKey";
+  
+  area2 = buildPlatformWithElevator(scene, 100, 120, 8, { x: 5, y: -0.1, z: 150 }, 10, 10, 0x654321, yellowKey); // Cria plataforma com elevador e plataforma chave amarela
   area2.name = "area2";
   addPlatformToScene(scene, area2, collisionObjects);
 
