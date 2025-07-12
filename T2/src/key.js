@@ -58,7 +58,7 @@ export function buildKey(position, scene, color, brightnessColor, shininess, col
     mesh.position.set(position.x, position.y, position.z);
 
     scene.add(mesh);
-    
+
     collisionObjects.push(mesh);
 
     mesh.userData = {

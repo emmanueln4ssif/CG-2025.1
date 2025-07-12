@@ -30,7 +30,7 @@ export function setupEnvironment(scene, collisionObjects, light) {
   createPlatformWithKey(scene, area1, 1, 0xE2725B, "Red", collisionObjects); // Cria plataforma com chave vermelha
 
   // Area 2: Plataforma com porta e parte elevatória
-  yellowKey = buildKey({ x: 0, y: 0, z: 0}, scene, "Yellow", "0xff6699", 80, collisionObjects); // Cria a chave amarela
+  yellowKey = buildKey({ x: 0, y: 0, z: 0}, scene, "Yellow", "0xffd700", 80, collisionObjects); // Cria a chave amarela
   yellowKey.name = "yellowKey";
   
   area2 = buildPlatformWithElevator(scene, 100, 120, 8, { x: 5, y: -0.1, z: 150 }, 10, 10, 0x654321, yellowKey); // Cria plataforma com elevador e plataforma chave amarela
