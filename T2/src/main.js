@@ -10,7 +10,7 @@ import { sunLight, ambientLight } from './light.js';
 import { createEnemy, updateEnemies, allEnemies, checkDefeatedEnemies } from './enemies/enemies.js';
 import { LostSoul } from './enemies/lostSoul.js';
 import { Cacodemon } from './enemies/cacodemon.js';
-import { SpriteMixer } from "../sprites/SpriteMixer.js";
+import { SpriteMixer } from "../../libs/sprites/SpriteMixer.js";
 
 // --- Cena Básica ---
 export let scene = new THREE.Scene()
