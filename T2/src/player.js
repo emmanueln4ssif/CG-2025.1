@@ -9,6 +9,7 @@ let controls, orbit, rendererElement;
 let keyboard = new KeyboardState();
 
 export const player = {
+   type: 'player',
    position: new THREE.Vector3(0, 8, 0),
    velocity: new THREE.Vector3(),
    speed: 50,

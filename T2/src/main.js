@@ -8,8 +8,6 @@ import { bullets, setupGun, setupCrosshair, shoot, updateBullets, handleShooting
 import { placeKeyAndUnlockDoor, openDoor, updateDoor, updateElevator, isPlayerOnTop, elevatorState, yellowKeyPlatform, canUseElevator } from './area2.js';
 import { sunLight, ambientLight } from './light.js';
 import { createEnemy, updateEnemies, allEnemies, checkDefeatedEnemies } from './enemies/enemies.js';
-import { LostSoul } from './enemies/lostSoul.js';
-import { Cacodemon } from './enemies/cacodemon.js';
 import { SpriteMixer } from "../../libs/sprites/SpriteMixer.js";
 
 // --- Cena Básica ---
@@ -47,11 +45,11 @@ setupCrosshair();
 handleShootingState();
 
 // Setup dos inimigos
-createEnemy('lost_soul', new THREE.Vector3(200, 10, 185), scene, collisionObjects);
-createEnemy('lost_soul', new THREE.Vector3(155, 10, 185), scene, collisionObjects);
-createEnemy('lost_soul', new THREE.Vector3(110, 5, 170), scene, collisionObjects);
-createEnemy('lost_soul', new THREE.Vector3(120, 10, 115), scene, collisionObjects);
-createEnemy('lost_soul', new THREE.Vector3(210, 10, 115), scene, collisionObjects);
+createEnemy('lost_soul', new THREE.Vector3(115, 15, 190), scene, collisionObjects);
+createEnemy('lost_soul', new THREE.Vector3(205, 18, 190), scene, collisionObjects);
+createEnemy('lost_soul', new THREE.Vector3(160, 8, 150), scene, collisionObjects);
+createEnemy('lost_soul', new THREE.Vector3(120, 12, 120), scene, collisionObjects);
+createEnemy('lost_soul', new THREE.Vector3(200, 14, 120), scene, collisionObjects);
 createEnemy('cacodemon', new THREE.Vector3(5, 25, 190), scene, collisionObjects);
 createEnemy('cacodemon', new THREE.Vector3(45, 25, 150), scene, collisionObjects);
 createEnemy('cacodemon', new THREE.Vector3(-25, 25, 180), scene, collisionObjects);
@@ -82,7 +80,7 @@ const desiredWorldY = 40;
 const currentWorldPosition = new THREE.Vector3();
 yellowKey.getWorldPosition(currentWorldPosition);
 
-console.log("✅ Nova posição local aplicada:", yellowKey.position);
+//console.log("✅ Nova posição local aplicada:", yellowKey.position);
 
 // --- Renderização ---
 function render() {
@@ -183,9 +181,16 @@ function render() {
       }
 
    }
+   //Define comportamento do elevador acaso o usuário caia da plataforma e precise voltar para o topo
+   const isElevatorAtTop = Math.abs(elevatorState.base.position.y - (elevatorState.base.geometry.parameters.height / 2)) < 0.05;
 
-  
-
+     //Se o elevador está no topo, parado, e o jogador está no chão
+   if (isElevatorAtTop && !elevatorState.moving && controls.getObject().position.y < 2 && doorIsOpen) {
+      elevatorState.targetY = - (elevatorState.base.geometry.parameters.height / 2) + 0.1;
+      elevatorState.moving = true;
+      elevatorState.goingDown = true;
+      elevatorState.waiting = false;
+   }
 
    spriteMixer.update(delta); // animação dos sprites
 

@@ -4,7 +4,7 @@ import {SpriteMixer} from "../../libs/sprites/SpriteMixer.js";
 const bullets = [];
 let isShooting = false;
 let lastShotTime = 0;
-const fireRate = 500;
+let fireRate = 500;
 const bulletSpeed = 30;
 const maxDistance = 100;
 let gun, crosshairElement;
@@ -95,7 +95,7 @@ function shoot(scene, camera) {
       fireRate = 500;
    } else if (currentWeapon == 'chaingun') {
       bullet.userData.damage = 2;
-      fireRate = 10000; // 10 tiros por segundo
+      fireRate = 500; // 10 tiros por segundo
    } else {
       console.log("Outra arma");
    }

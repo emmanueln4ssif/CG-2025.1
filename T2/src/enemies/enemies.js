@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { LostSoul } from './lostSoul.js';
 import { Cacodemon } from './cacodemon.js'; // Descomente quando for adicionar
-import { player } from '../player.js'; // Importa o objeto player
 import { camera } from '../main.js';
 
 export const allEnemies = [];
+const allEnemyProjectiles = [];
 const raycaster = new THREE.Raycaster();
 
 export function createHealthBar() {
@@ -26,10 +26,12 @@ export function createHealthBar() {
     const healthBar = new THREE.Group();
     healthBar.add(bgBar);
     healthBar.add(healthBarMesh);
-
-    healthBar.lookAt(player.position); 
+ 
     // Adiciona uma referência à malha da vida para ser facilmente acessada depois
     healthBar.healthMesh = healthBarMesh;
+
+    // Para a barra de vida sempre olhar para o player e ficar visível
+    healthBar.lookAt(camera.position);
 
     return healthBar;
 }
@@ -48,7 +50,6 @@ export function updateHealthBar(healthBar, hp, maxHp) {
     // Faz a barra virar para onde o jogador está olhand
     healthBar.lookAt(camera.position);
 }
-
 
 // Função "Fábrica": Cria um inimigo do tipo e posição especificados
 export function createEnemy(type, position, scene, collisionObjects) {
@@ -146,6 +147,10 @@ export function hasLineOfSight(start, end, colliders, selfMesh) {
     return true;
 }
 
+export function addEnemyProjectile(projectileData) {
+    allEnemyProjectiles.push(projectileData);
+}
+
 // Função para verificar se o jogador derrotou os inimigos de cada área
 // Retorna um objeto com as propriedades defeatedEnemiesArea1 e defeatedEnemiesArea2
 export function checkDefeatedEnemies(player) {
@@ -167,4 +172,45 @@ export function checkDefeatedEnemies(player) {
     //console.log("area 2:", player.defeatedEnemiesArea2);
 
     return { defeatedEnemiesArea1: player.defeatedEnemiesArea1, defeatedEnemiesArea2: player.defeatedEnemiesArea2 };
+}
+
+function updateAllEnemyProjectiles(delta, scene, playerObject, environmentObjects) {
+    for (let i = allEnemyProjectiles.length - 1; i >= 0; i--) {
+        const projectileData = allEnemyProjectiles[i];
+        const projectile = projectileData.mesh;
+
+        const moveStep = projectileData.direction.clone().multiplyScalar(projectileData.speed * delta);
+        projectile.position.add(moveStep);
+        
+        const playerPosition = playerObject.position;
+        const playerHitbox = new THREE.Box3(
+            new THREE.Vector3(playerPosition.x - 0.5, playerPosition.y - 2, playerPosition.z - 0.5),
+            new THREE.Vector3(playerPosition.x + 0.5, playerPosition.y + 2, playerPosition.z + 0.5)
+        );
+
+        if (playerHitbox.containsPoint(projectile.position)) {
+            console.log("%cJOGADOR ATINGIDO!", "color: red; font-weight: bold;");
+            // TODO: Implementar a lógica de dano no jogador
+            scene.remove(projectile);
+            allEnemyProjectiles.splice(i, 1);
+            continue;
+        }
+
+        for(const obj of environmentObjects) {
+            if(obj === projectile || (obj.parent && obj.parent === projectile)) continue;
+            const box = new THREE.Box3().setFromObject(obj);
+            if(box.containsPoint(projectile.position)) {
+                scene.remove(projectile);
+                allEnemyProjectiles.splice(i, 1);
+                break;
+            }
+        }
+        if(!allEnemyProjectiles[i]) continue;
+
+        const traveled = projectile.position.distanceTo(projectileData.startPosition);
+        if (traveled >= projectileData.maxDistance) {
+            scene.remove(projectile);
+            allEnemyProjectiles.splice(i, 1);
+        }
+    }
 }

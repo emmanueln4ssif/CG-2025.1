@@ -9,7 +9,7 @@ export class LostSoul {
         this.hp = 20;
         this.maxHp = 20;
         this.baseSpeed = 3;
-        this.baseChargeSpeed = 10;
+        this.baseChargeSpeed = 20;
         this.speed = 0; // Começa parado
         this.chargeSpeed = 0; // Começa parado
         this.state = 'idle'; // Novo estado inicial: 'idle', 'patrolling', 'charging', 'dying'
@@ -21,6 +21,9 @@ export class LostSoul {
         this.mesh = null;
         this.healthBar = null;
         this.collisionObjects = collisionObjects;
+        this.chargeStartPosition = new THREE.Vector3();
+        this.chargeDirection = new THREE.Vector3();
+        this.chargeMaxDistance = 40; // Distância que a investida percorre
         
         // Define a área de ativação para este inimigo (Área 1)
         // Valores de exemplo, ajuste conforme o seu cenário
@@ -91,7 +94,7 @@ export class LostSoul {
             this.state = 'patrolling';
             this.speed = this.baseSpeed;
             this.chargeSpeed = this.baseChargeSpeed;
-            console.log("Lost Soul ativado!");
+            //console.log("Lost Soul ativado!");
         } 
     }
 
@@ -113,6 +116,15 @@ export class LostSoul {
     updatePatrolState(delta, playerObject) {
         const playerPosition = playerObject.position;
         if (this.mesh.position.distanceTo(playerPosition) < 40 && hasLineOfSight(this.mesh.position, playerPosition, this.collisionObjects, this.mesh)) {
+            
+            // --- LÓGICA DE MUDANÇA DE ESTADO ATUALIZADA ---
+            // 1. "Memoriza" a posição inicial da caveira
+            this.chargeStartPosition.copy(this.mesh.position);
+            
+            // 2. Calcula a direção FIXA do ataque e guarda-a
+            this.chargeDirection.subVectors(playerPosition, this.chargeStartPosition).normalize();
+
+            // 3. Muda o estado para o ataque de carga
             this.state = 'charging';
             return;
         }
@@ -128,18 +140,52 @@ export class LostSoul {
     }
 
     updateChargeState(delta, playerObject) {
-        const playerPosition = playerObject.position;
-        this.mesh.lookAt(playerPosition);
-        const direction = new THREE.Vector3().subVectors(playerPosition, this.mesh.position).normalize();
-        this.mesh.position.add(direction.multiplyScalar(this.chargeSpeed * delta));
-        if (this.mesh.position.distanceTo(playerPosition) > 50 || !hasLineOfSight(this.mesh.position, playerPosition, this.collisionObjects, this.mesh)) {
-            this.state = 'patrolling';
+        // 1. A caveira agora olha para a frente, na direção da sua investida
+        this.mesh.lookAt(this.mesh.position.clone().add(this.chargeDirection));
+
+        // 2. Calcula o próximo passo na direção JÁ DEFINIDA
+        const moveStep = this.chargeDirection.clone().multiplyScalar(this.chargeSpeed * delta);
+
+        // 3. Verifica colisão com o ambiente antes de se mover
+        if (this.checkCollision(moveStep)) {
+            this.state = 'patrolling'; // Bateu na parede, para o ataque
+            return;
+        }
+
+        // 4. Se não há colisão, move a caveira
+        this.mesh.position.add(moveStep);
+
+        // 5. Verifica se atingiu o jogador durante o percurso
+        const distanceToPlayer = this.mesh.position.distanceTo(playerObject.position);
+        if (distanceToPlayer < 2.5 ) { //&& this.hitCooldown <= 0
+            console.log("Atingiu player!");
+            //this.hitCooldown = 1.0; // Impede spam de mensagens        
+            this.mesh.position.add(moveStep);
+        }
+
+        // 6. Verifica se a investida terminou (atingiu a distância máxima)
+        const distanceTraveled = this.mesh.position.distanceTo(this.chargeStartPosition);
+        if (distanceTraveled >= this.chargeMaxDistance) {
+            this.state = 'patrolling'; // Terminou o percurso, volta a patrulhar
         }
     }
     
-    // ... (O resto das funções como updateDyingAnimation, checkCollision, etc. permanecem iguais) ...
     updateDyingAnimation(delta) { this.mesh.traverse(c => { if(c.isMesh && c.material) { c.material.transparent=true; c.material.opacity-=delta*1.5; if(c.material.opacity<=0) this.readyToRemove=true; } }); }
     changePatrolDirection() { this.patrolDirection.set(Math.random()*2-1, Math.random()*0.5-0.25, Math.random()*2-1).normalize(); this.patrolTimer=Math.random()*3+2; }
-    checkCollision(s) { const b=new THREE.Box3().setFromObject(this.mesh); b.translate(s); for(const o of this.collisionObjects) { if(o===this.mesh) continue; if(b.intersectsBox(new THREE.Box3().setFromObject(o))) return true; } return false; }
+    
+
+    checkCollision(s) {
+        const b = new THREE.Box3().setFromObject(this.mesh);
+        b.translate(s);
+        for (const o of this.collisionObjects) {
+              if (o === this.mesh || o.name === "Player") {
+                continue;
+            }
+            if (b.intersectsBox(new THREE.Box3().setFromObject(o))) {
+                return true; // Colidiu com um obstáculo (parede, chão, etc.)
+            }
+        }
+        return false; // Caminho livre
+    }
     isReadyToRemove() { return this.readyToRemove; }
 }

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from '../../../build/jsm/loaders/GLTFLoader.js';
-import { createHealthBar, updateHealthBar, hasLineOfSight } from './enemies.js';
+import { createHealthBar, updateHealthBar, hasLineOfSight, addEnemyProjectile } from './enemies.js';
 
 export const cacodemonProjectiles = [];
 
@@ -8,15 +8,13 @@ export class Cacodemon {
     constructor(position, scene, collisionObjects) {
         this.hp = 50;
         this.maxHp = 50;
-        this.baseSpeed = 4;
+        this.baseSpeed = 8;
         this.speed = 0; // Começa parado
         this.state = 'idle'; // 'idle', 'patrolling', 'attacking', 'dying'
         this.isActive = false;
         this.isDying = false;
         this.readyToRemove = false;
         this.attackCooldown = 0;
-        this.minAttackDistance = 15;
-        this.maxAttackDistance = 40;
         this.mesh = null; // Será a hitbox invisível
         this.healthBar = null;
         this.collisionObjects = collisionObjects;
@@ -25,7 +23,6 @@ export class Cacodemon {
         // Define a área de ativação para este inimigo (Área 2)
         // Valores de exemplo, ajuste conforme o seu cenário
         this.activationArea = new THREE.Box3(
-
             new THREE.Vector3(-55, 0, 100), // Ponto mínimo (x, y, z)
             new THREE.Vector3(65, 50, 200)   // Ponto máximo (x, y, z)
         );
@@ -38,8 +35,8 @@ export class Cacodemon {
         loader.load('./assets/cacodemon.glb', (gltf) => {
             // --- CRIAÇÃO DA HITBOX MAIOR ---
             // 1. Cria uma geometria invisível maior que o modelo
-            const hitboxGeometry = new THREE.SphereGeometry(6, 6, 6); // Raio de 2.5
-            const hitboxMaterial = new THREE.MeshBasicMaterial({ visible: false });
+            const hitboxGeometry = new THREE.SphereGeometry(1, 1, 1); // Raio de 2.5
+            const hitboxMaterial = new THREE.MeshBasicMaterial({ visible: true });
             this.mesh = new THREE.Mesh(hitboxGeometry, hitboxMaterial); // this.mesh agora é a hitbox
             this.mesh.position.copy(position);
 
@@ -53,11 +50,11 @@ export class Cacodemon {
                 if (child.isMesh) {
                     child.castShadow = true;
                     child.receiveShadow = true;
-                    this.collisionObjects.push(child);
                 }
             });
 
             this.scene.add(this.mesh);
+            this.collisionObjects.push(this.mesh); // Adiciona a hitbox aos objetos de colisão
             this.healthBar = createHealthBar();
             this.healthBar.position.set(0, 3.5, 0);
             this.mesh.add(this.healthBar);
@@ -74,11 +71,15 @@ export class Cacodemon {
         if (this.healthBar && camera) {
             this.healthBar.quaternion.copy(camera.quaternion);
         }
-        if (this.attackCooldown > 0) this.attackCooldown -= delta;
-        
+        if (this.attackCooldown > 0) {
+            this.attackCooldown -= delta;
+        }
         if (!this.isActive) return;
 
         switch (this.state) {
+            case 'patrolling':
+                this.updatePatrolState(delta, playerObject);
+                break;
             case 'attacking':
                 this.updateAttackState(delta, playerObject);
                 break;
@@ -91,7 +92,6 @@ export class Cacodemon {
             this.isActive = true;
             this.state = 'attacking'; // Cacodemon já começa a atacar
             this.speed = this.baseSpeed;
-            console.log("Cacodemon ativado!");
         }
     }
 
@@ -104,6 +104,23 @@ export class Cacodemon {
             this.isDying = true;
             this.state = 'dying';
             if (this.healthBar) this.mesh.remove(this.healthBar);
+        }
+    }
+
+    updatePatrolState(delta, playerObject) {
+        const playerPosition = playerObject.position;
+        if (this.mesh.position.distanceTo(playerPosition) < 40 && hasLineOfSight(this.mesh.position, playerPosition, this.collisionObjects, this.mesh)) {
+            this.state = 'attacking';
+            return;
+        }
+        this.patrolTimer -= delta;
+        if (this.patrolTimer <= 0) this.changePatrolDirection();
+        const moveStep = this.patrolDirection.clone().multiplyScalar(this.speed * delta);
+        if (this.checkCollision(moveStep)) {
+            this.changePatrolDirection();
+        } else {
+            this.mesh.position.add(moveStep);
+            this.mesh.lookAt(this.mesh.position.clone().add(this.patrolDirection));
         }
     }
 
