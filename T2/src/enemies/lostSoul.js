@@ -52,10 +52,10 @@ export class LostSoul {
                     }
                 });
                 scene.add(this.mesh);
-                this.collisionObjects.push(this.mesh);
                 this.healthBar = createHealthBar();
                 this.healthBar.position.set(0, 8, 0);
                 this.mesh.add(this.healthBar);
+                this.collisionObjects.push(this.mesh);
                 this.changePatrolDirection();
             });
         });

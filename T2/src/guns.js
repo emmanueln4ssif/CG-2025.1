@@ -26,6 +26,14 @@ function setupGun(camera) {
    weapons.launcher = gun; 
 }
 
+function updateFireRate() {
+   if (currentWeapon === 'chaingun') {
+      fireRate = 100;
+   } else if (currentWeapon === 'launcher') {
+      fireRate = 500;
+   }
+}
+
 function setupChaingun(camera, spriteMixer) {
    const loader = new THREE.TextureLoader();
    loader.load('assets/chaingun.png', (texture) => {
@@ -87,6 +95,7 @@ function shoot(scene, camera) {
    const bulletGeometry = new THREE.SphereGeometry(0.5, 8, 8); //0.25
    const bulletMaterial = new THREE.MeshLambertMaterial({color: 'white'});
    const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
+   
    bullet.castShadow = true;
    bullet.receiveShadow = true;
    bullet.userData.type = 'bullet';
@@ -95,17 +104,18 @@ function shoot(scene, camera) {
       fireRate = 500;
    } else if (currentWeapon == 'chaingun') {
       bullet.userData.damage = 2;
-      fireRate = 500; // 10 tiros por segundo
+      fireRate = 100; 
    } else {
       console.log("Outra arma");
    }
-
+   
    const gunWorldPosition = new THREE.Vector3();
    gun.getWorldPosition(gunWorldPosition);
 
    const barrelOffset = new THREE.Vector3(0, 0, -0.1);
    barrelOffset.applyQuaternion(gun.quaternion);
    bullet.position.copy(gunWorldPosition).add(barrelOffset);
+   bullet.scale.set(1, 1, 1); 
 
    const direction = new THREE.Vector3();
    camera.getWorldDirection(direction);
@@ -139,39 +149,38 @@ function checkBulletCollision(position, collisionObjects) {
 }
 
 function updateBullets(clock, scene, collisionObjects) {
-   const toRemove = [];
-   bullets.forEach((bulletData, index) => {
-      const { mesh, direction, startPosition } = bulletData;
-      mesh.position.add(direction.clone().multiplyScalar(bulletSpeed * clock.getDelta() * 200));
+   
+   const delta = clock.getDelta();
 
-      const traveled = mesh.position.distanceTo(startPosition);
-      if (traveled > maxDistance || checkBulletCollision(mesh.position, collisionObjects)) {
-         toRemove.push(index);
+   for (let i = bullets.length - 1; i >= 0; i--) {
+      const bulletData = bullets[i];
+      bulletData.mesh.position.add(bulletData.direction.clone().multiplyScalar(bulletSpeed * delta * 200));
+
+      const traveled = bulletData.mesh.position.distanceTo(bulletData.startPosition);
+      if (traveled > maxDistance || checkBulletCollision(bulletData.mesh.position, collisionObjects)) {
+         scene.remove(bulletData.mesh);
+         bulletData.mesh.geometry.dispose();
+         bulletData.mesh.material.dispose();
+         bullets.splice(i, 1);
       }
-   });
-
-   toRemove.reverse().forEach(i => {
-      scene.remove(bullets[i].mesh);
-      bullets.splice(i, 1);
-   });
+   }
 }
+
 
 function handleShootingState() {
    window.addEventListener('mousedown', () => {
     isShooting = true;
+});
+
+window.addEventListener('mouseup', () => {
+    isShooting = false;
 
     if (currentWeapon === 'chaingun' && shootAction) {
-        shootAction.playLoop(); // loop automático
+        shootAction.stop(); 
+        chaingunSprite.setFrame(0); 
     }
-   });
-   window.addEventListener('mouseup', () => {
-      isShooting = false;
+});
 
-      if (currentWeapon === 'chaingun' && shootAction) {
-         shootAction.stop();      
-         chaingunSprite.setFrame(0); 
-      }
-   });
 
 }
 
@@ -206,5 +215,8 @@ export {
    switchWeapon,
    setupWeaponSwitching,
    isShooting,
-   bullets
+   bullets,
+   updateFireRate,
+   currentWeapon,
+   shootAction
 };

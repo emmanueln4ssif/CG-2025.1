@@ -4,7 +4,7 @@ import { initRenderer, initCamera, initDefaultBasicLight, setDefaultMaterial, on
 import { setupEnvironment } from './environment.js';
 import { key, platform, checkKeyPickup, updatePlatformMovement, raisePlatformTo, yellowKey, redKey } from './key.js';
 import { setupPlayer, updatePlayer, controls, player } from './player.js';
-import { bullets, setupGun, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired, setupChaingun, setupWeaponSwitching } from './guns.js';
+import { bullets, shootAction, setupGun, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired, setupChaingun, setupWeaponSwitching, updateFireRate, currentWeapon } from './guns.js';
 import { placeKeyAndUnlockDoor, openDoor, updateDoor, updateElevator, isPlayerOnTop, elevatorState, yellowKeyPlatform, canUseElevator } from './area2.js';
 import { sunLight, ambientLight } from './light.js';
 import { createEnemy, updateEnemies, allEnemies, checkDefeatedEnemies } from './enemies/enemies.js';
@@ -90,10 +90,28 @@ function render() {
    updatePlayer(delta, collisionObjects);
 
    // Tiro
+   updateFireRate(); // Atualiza a taxa de disparo com base na arma atual
+   // const currentTime = performance.now();
+   // if (canShootNow(currentTime)) {
+   //    shoot(scene, camera);
+   //    markShotFired(currentTime);
+   // }
+
+   const deltaMs = delta * 1000; // converter para milissegundos
+
+   // Atualiza o mixer das sprites (importante!)
+   spriteMixer.update(deltaMs);
+
+   // Verifica se pode disparar
    const currentTime = performance.now();
    if (canShootNow(currentTime)) {
       shoot(scene, camera);
       markShotFired(currentTime);
+
+      // Exibe a animação da chaingun (foguinho) a cada tiro
+      if (currentWeapon === 'chaingun' && shootAction) {
+         shootAction.playOnce(); // mostra o frame animado por 100ms
+      }
    }
 
    // Atualização das balas
