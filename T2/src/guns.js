@@ -106,7 +106,7 @@ function shoot(scene, camera) {
       bullet.userData.damage = 2;
       fireRate = 100; 
    } else {
-      console.log("Outra arma");
+      console.log("Outra arma"); // Depois (?)
    }
    
    const gunWorldPosition = new THREE.Vector3();

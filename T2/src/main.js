@@ -80,8 +80,6 @@ const desiredWorldY = 40;
 const currentWorldPosition = new THREE.Vector3();
 yellowKey.getWorldPosition(currentWorldPosition);
 
-//console.log("✅ Nova posição local aplicada:", yellowKey.position);
-
 // --- Renderização ---
 function render() {
    const delta = Math.min(clock.getDelta(), 0.1);
@@ -220,7 +218,6 @@ function render() {
 //teste para levantar a chave vermelha com a tecla 'E' (em caso de erro na animação)
 window.addEventListener('keydown', (event) => {
    if (event.key === 'e') {
-      console.log("⏫ Tecla 'E' pressionada");
       raisePlatformTo(6, platform); // altura desejada
    }
 });

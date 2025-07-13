@@ -193,8 +193,7 @@ export function placeKeyAndUnlockDoor(scene, controls) {
     const platformWithKey = scene.getObjectByName("platformWithKeyColorRed");
 
     const distanceToDoor = controls.getObject().position.distanceTo(blockPosition);
-    //console.log("Distância até a porta:", distanceToDoor);
-
+    
     // Se o jogador estiver próximo o suficiente da porta, ativa a chave
     if (distanceToDoor < 5) {
       key.visible = true;

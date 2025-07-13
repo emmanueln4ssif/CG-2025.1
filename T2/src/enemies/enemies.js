@@ -105,12 +105,12 @@ function checkBulletCollision(enemy, playerBullets, scene) {
         const bulletMesh = bulletData.mesh;
         //console.log("Verificando colisão com a bala");
         
-        // Cria uma caixa de colisão para a bala
+        // Cria colisão para a bala
         const bulletBox = new THREE.Box3().setFromObject(bulletMesh);
 
         // Verifica se a caixa da bala intercepta a caixa do inimigo
         if (enemyBox.intersectsBox(bulletBox)) {
-            console.log("HP do inimigo:", enemy.hp - bulletMesh.userData.damage);
+            //console.log("HP do inimigo:", enemy.hp - bulletMesh.userData.damage);
 
             updateHealthBar(enemy.healthBar, enemy.hp - bulletMesh.userData.damage, enemy.maxHp);
             // Causa dano no inimigo

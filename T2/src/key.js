@@ -98,8 +98,7 @@ export function createPlatformWithKey(scene, area, size, color, colorName, colli
     key.position.set(0, 1.5, 0); // posiciona de acordo com a plataforma
     key.name = colorName + "KeyOnPlatform";
     key.userData.fading = false; // para controle de fading da chave
-    console.log(key.name)
-
+    
     if (key.name === "RedKeyOnPlatform") {
         redKey = key; // guarda a chave vermelha 
     }
@@ -177,10 +176,8 @@ export function checkKeyPickup(controls, platform, receivedKey, scene) {
     platform.getWorldPosition(platWorldPos);
 
     const distance = playerWorldPos.distanceTo(platWorldPos);
-    //console.log("Distância do jogador à chave:", distance);
 
     const pickupDistance = 8;
-    //console.log(receivedKey.name);
 
     if (!receivedKey.userData.fading && distance < pickupDistance && receivedKey.visible) {
 

@@ -89,12 +89,10 @@ export class LostSoul {
     checkActivation(playerPosition) {
         const isPlayerInArea = this.activationArea.containsPoint(playerPosition);
         if (isPlayerInArea && !this.isActive) {
-            // Ativa o inimigo
             this.isActive = true;
             this.state = 'patrolling';
             this.speed = this.baseSpeed;
             this.chargeSpeed = this.baseChargeSpeed;
-            //console.log("Lost Soul ativado!");
         } 
     }
 
@@ -140,30 +138,23 @@ export class LostSoul {
     }
 
     updateChargeState(delta, playerObject) {
-        // 1. A caveira agora olha para a frente, na direção da sua investida
         this.mesh.lookAt(this.mesh.position.clone().add(this.chargeDirection));
 
-        // 2. Calcula o próximo passo na direção JÁ DEFINIDA
         const moveStep = this.chargeDirection.clone().multiplyScalar(this.chargeSpeed * delta);
 
-        // 3. Verifica colisão com o ambiente antes de se mover
         if (this.checkCollision(moveStep)) {
             this.state = 'patrolling'; // Bateu na parede, para o ataque
             return;
         }
 
-        // 4. Se não há colisão, move a caveira
         this.mesh.position.add(moveStep);
 
-        // 5. Verifica se atingiu o jogador durante o percurso
         const distanceToPlayer = this.mesh.position.distanceTo(playerObject.position);
         if (distanceToPlayer < 2.5 ) { //&& this.hitCooldown <= 0
-            console.log("Atingiu player!");
             //this.hitCooldown = 1.0; // Impede spam de mensagens        
             this.mesh.position.add(moveStep);
         }
 
-        // 6. Verifica se a investida terminou (atingiu a distância máxima)
         const distanceTraveled = this.mesh.position.distanceTo(this.chargeStartPosition);
         if (distanceTraveled >= this.chargeMaxDistance) {
             this.state = 'patrolling'; // Terminou o percurso, volta a patrulhar
