@@ -56,6 +56,7 @@ export class Cacodemon {
 
             this.scene.add(this.mesh);
             this.collisionObjects.push(this.mesh);
+            this.mesh.userData.enemyInstance = this;
             this.healthBar = createHealthBar();
             this.healthBar.position.set(0, 3.5, 0);
             this.mesh.add(this.healthBar);
