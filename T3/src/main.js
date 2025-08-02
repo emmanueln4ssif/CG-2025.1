@@ -103,7 +103,7 @@ function render() {
    // Verifica se pode disparar
    const currentTime = performance.now();
    if (canShootNow(currentTime)) {
-      shoot(scene, camera);
+      shoot(scene, camera, collisionObjects);
       markShotFired(currentTime);
 
       // Exibe a animação da chaingun (foguinho) a cada tiro

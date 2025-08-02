@@ -67,6 +67,7 @@ function switchWeapon(to) {
    }
 
    currentWeapon = to;
+   updateFireRate();
 
    if (to === 'launcher' && gun) {
       gun.visible = true;
@@ -91,24 +92,50 @@ function setupCrosshair() {
    document.body.appendChild(crosshairElement);
 }
 
-function shoot(scene, camera) {
-   const bulletGeometry = new THREE.SphereGeometry(0.5, 8, 8); //0.25
+function performRaycastDamage(camera, collisionObjects) {
+    const raycaster = new THREE.Raycaster();
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    raycaster.set(camera.position, direction);
+
+    const intersects = raycaster.intersectObjects(collisionObjects, true); // <-- true para pegar os filhos também
+    if (intersects.length > 0) {
+        let hitObject = intersects[0].object;
+
+        // Sobe na hierarquia até achar o userData.enemyInstance
+        while (hitObject && !hitObject.userData.enemyInstance && hitObject.parent) {
+            hitObject = hitObject.parent;
+        }
+
+        if (hitObject && hitObject.userData.enemyInstance) {
+            const enemyInstance = hitObject.userData.enemyInstance;
+            enemyInstance.takeDamage(2);
+            console.log(`Acertou ${hitObject.name}, HP restante: ${enemyInstance.hp}`);
+        } else {
+            console.log("Acertou objeto sem enemyInstance");
+        }
+    }
+}
+
+
+
+function shoot(scene, camera, collisionObjects) {
+   if (currentWeapon === 'chaingun') {
+      shootAction.playOnce();
+      performRaycastDamage(camera, collisionObjects);
+      return; // Não cria projétil visual.
+   }
+
+   // Apenas para o launcher:
+   const bulletGeometry = new THREE.SphereGeometry(0.5, 8, 8);
    const bulletMaterial = new THREE.MeshLambertMaterial({color: 'white'});
    const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
-   
+
    bullet.castShadow = true;
    bullet.receiveShadow = true;
    bullet.userData.type = 'bullet';
-   if (currentWeapon == 'launcher'){
-      bullet.userData.damage = 10;
-      fireRate = 500;
-   } else if (currentWeapon == 'chaingun') {
-      bullet.userData.damage = 2;
-      fireRate = 100; 
-   } else {
-      console.log("Outra arma"); // Depois (?)
-   }
-   
+   bullet.userData.damage = 10; // Dano fixo para o launcher
+
    const gunWorldPosition = new THREE.Vector3();
    gun.getWorldPosition(gunWorldPosition);
 
@@ -149,7 +176,6 @@ function checkBulletCollision(position, collisionObjects) {
 }
 
 function updateBullets(clock, scene, collisionObjects) {
-   
    const delta = clock.getDelta();
 
    for (let i = bullets.length - 1; i >= 0; i--) {
@@ -166,7 +192,6 @@ function updateBullets(clock, scene, collisionObjects) {
    }
 }
 
-
 function handleShootingState() {
    window.addEventListener('mousedown', () => {
     isShooting = true;
@@ -174,14 +199,11 @@ function handleShootingState() {
 
 window.addEventListener('mouseup', () => {
     isShooting = false;
-
     if (currentWeapon === 'chaingun' && shootAction) {
         shootAction.stop(); 
         chaingunSprite.setFrame(0); 
     }
 });
-
-
 }
 
 function canShootNow(currentTime) {

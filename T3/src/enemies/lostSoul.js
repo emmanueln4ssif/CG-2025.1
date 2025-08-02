@@ -56,6 +56,7 @@ export class LostSoul {
                 this.healthBar.position.set(0, 8, 0);
                 this.mesh.add(this.healthBar);
                 this.collisionObjects.push(this.mesh);
+                this.mesh.userData.enemyInstance = this;
                 this.changePatrolDirection();
             });
         });
