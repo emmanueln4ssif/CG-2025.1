@@ -6,6 +6,7 @@ import { controls } from './player.js';
 import { Group } from '../../build/three.module.js';
 import { addGreekColumnsToPlatform, createGreekFrontColumns } from './area1.js';
 import { buildPlatformWithElevator } from './area2.js';
+import { buildArea3 } from './area3.js';
 
 
 export let elevatorBase, yellowKey, rectangleWithYellowKey, area2;
@@ -37,8 +38,8 @@ export function setupEnvironment(scene, collisionObjects, light) {
   area2.name = "area2";
   addPlatformToScene(scene, area2, collisionObjects);
 
-  // Área 3: Plataforma simples
-  const area3 = buildPlatform(scene, 100, 120, 4, { x: -150, y: 0, z: 150 }, 15, 8, 0.8, 0xC3D3F1);
+  // Área 3: Plataforma com hangar
+  const area3 = buildArea3(scene, collisionObjects);
   addPlatformToScene(scene, area3, collisionObjects);
 
   // Área 4: Plataforma simples
