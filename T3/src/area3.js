@@ -4,11 +4,11 @@ import * as THREE from 'three';
 export function buildArea3(scene, collisionObjects) {
   const areaGroup = new THREE.Group();
   areaGroup.name = "Area3";
-
+  
   // Piso
   const floor = new THREE.Mesh(
     new THREE.BoxGeometry(100, 1, 120),
-    new THREE.MeshLambertMaterial({ color: 0x888888 })
+    new THREE.MeshLambertMaterial({ color: 0x888888, map: floorTexture })
   );
   floor.position.set(-150, 0.5, 150);
   floor.receiveShadow = true;
@@ -35,9 +35,11 @@ export function buildArea3(scene, collisionObjects) {
 
   const hangarGeometry = new THREE.ExtrudeGeometry(curveShape, extrudeSettings);
   const hangarMesh = new THREE.Mesh(hangarGeometry, hangarMaterial);
-  hangarMesh.position.set(-150, 15, 150 - hangarDepth / 2);
+  hangarMesh.position.set(-150, 0, 150 - hangarDepth / 2);
   hangarMesh.castShadow = true;
   hangarMesh.receiveShadow = true;
+  hangarMesh.rotation.x = Math.PI;
+  hangarMesh.rotation.y = Math.PI; 
 
   areaGroup.add(hangarMesh);
   collisionObjects.push(hangarMesh);
