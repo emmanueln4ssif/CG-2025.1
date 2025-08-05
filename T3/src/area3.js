@@ -1,7 +1,7 @@
 // area3.js
 import * as THREE from 'three';
 
-export function buildHangarPlatform() {
+export function buildHangarPlatform(scene, sideSize, frontSize, height, position) {
   const areaGroup = new THREE.Group();
   areaGroup.name = "Area3";
   
@@ -9,14 +9,14 @@ export function buildHangarPlatform() {
   const textureLoader = new THREE.TextureLoader();
   const floorTexture = textureLoader.load('assets/floor.jpg');
   floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
-  floorTexture.repeat.set(4, 4); 
+  floorTexture.repeat.set(frontSize / 5, sideSize / 5); 
 
   const floor = new THREE.Mesh(
-    new THREE.BoxGeometry(100, 1, 120),
+    new THREE.BoxGeometry(frontSize, height, sideSize),
     new THREE.MeshLambertMaterial({ map: floorTexture })
   );
 
-  floor.position.set(-150, 0.5, 150);
+  floor.position.set(position.x, height/2, position.z);
   floor.receiveShadow = true;
   areaGroup.add(floor);
   
