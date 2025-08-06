@@ -12,6 +12,9 @@ let chaingunSprite, shootAction;
 let weapons = {};
 let currentWeapon = 'launcher';
 
+const soundLoader = new THREE.AudioLoader();
+let chaingunSound, launcherSound;
+
 function setupGun(camera) {
    const gunGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 32);
    const gunMaterial =  new THREE.MeshLambertMaterial({color: 0x555555});
@@ -121,9 +124,18 @@ function performRaycastDamage(camera, collisionObjects) {
 
 function shoot(scene, camera, collisionObjects) {
    if (currentWeapon === 'chaingun') {
+
+      if (chaingunSound && chaingunSound.isPlaying) chaingunSound.stop();
+      if (chaingunSound) chaingunSound.play();
+
       shootAction.playOnce();
       performRaycastDamage(camera, collisionObjects);
       return; // Não cria projétil visual.
+   }
+
+   if (currentWeapon === 'launcher') {
+      if (launcherSound && launcherSound.isPlaying) launcherSound.stop();
+      if (launcherSound) launcherSound.play();
    }
 
    // Apenas para o launcher:
@@ -225,6 +237,26 @@ function setupWeaponSwitching() {
    });
 }
 
+function setupWeaponSounds(camera) {
+   const listener = new THREE.AudioListener();
+   camera.add(listener);
+
+   chaingunSound = new THREE.Audio(listener);
+   launcherSound = new THREE.Audio(listener);
+
+   soundLoader.load('../0_assetsT3/sounds/chaingunFiring.wav', (buffer) => {
+      chaingunSound.setBuffer(buffer);
+      chaingunSound.setLoop(false);
+      chaingunSound.setVolume(0.5);
+   });
+
+   soundLoader.load('../0_assetsT3/sounds/rocketFiring.wav', (buffer) => {
+      launcherSound.setBuffer(buffer);
+      launcherSound.setLoop(false);
+      launcherSound.setVolume(0.5);
+   });
+}
+
 export {
    setupGun,
    setupChaingun,
@@ -240,5 +272,6 @@ export {
    bullets,
    updateFireRate,
    currentWeapon,
-   shootAction
+   shootAction,
+   setupWeaponSounds 
 };

@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { Clock } from 'three';
-import { initRenderer, initCamera, initDefaultBasicLight, setDefaultMaterial, onWindowResize, createGroundPlaneXZ } from "../../libs/util/util.js";
+import { initRenderer, initCamera, initDefaultBasicLight, setDefaultMaterial, onWindowResize, createGroundPlaneXZ , InfoBox} from "../../libs/util/util.js";
 import { setupEnvironment } from './environment.js';
 import { key, platform, checkKeyPickup, updatePlatformMovement, raisePlatformTo, yellowKey, redKey } from './key.js';
 import { setupPlayer, updatePlayer, controls, player } from './player.js';
-import { bullets, shootAction, setupGun, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired, setupChaingun, setupWeaponSwitching, updateFireRate, currentWeapon } from './guns.js';
+import { bullets, shootAction, setupGun, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired, setupChaingun, setupWeaponSwitching, updateFireRate, currentWeapon, setupWeaponSounds } from './guns.js';
 import { placeKeyAndUnlockDoor, openDoor, updateDoor, updateElevator, isPlayerOnTop, elevatorState, yellowKeyPlatform, canUseElevator } from './area2.js';
 import { sunLight, ambientLight } from './light.js';
 import { createEnemy, updateEnemies, allEnemies, checkDefeatedEnemies } from './enemies/enemies.js';
@@ -43,6 +43,7 @@ setupWeaponSwitching();
 setupChaingun(camera, spriteMixer)
 setupCrosshair();
 handleShootingState();
+setupWeaponSounds(camera);
 
 // Setup dos inimigos
 createEnemy('lost_soul', new THREE.Vector3(115, 15, 190), scene, collisionObjects);
@@ -79,7 +80,7 @@ const desiredWorldY = 40;
 
 const currentWorldPosition = new THREE.Vector3();
 yellowKey.getWorldPosition(currentWorldPosition);
-
+showInformation();
 // --- Renderização ---
 function render() {
    const delta = Math.min(clock.getDelta(), 0.1);
@@ -221,6 +222,43 @@ window.addEventListener('keydown', (event) => {
       raisePlatformTo(6, platform); // altura desejada
    }
 });
+
+// let backgroundMusic;
+// let isMusicPlaying = true;
+
+// const listener = new THREE.AudioListener();
+// camera.add(listener); // Adicione o listener na câmera!
+
+// const audioLoader = new THREE.AudioLoader();
+// backgroundMusic = new THREE.Audio(listener);
+
+// audioLoader.load('../0_assetsT3/sounds/doom.mp3', function(buffer) {
+//   backgroundMusic.setBuffer(buffer);
+//   backgroundMusic.setLoop(true);
+//   backgroundMusic.setVolume(0.5);
+//   backgroundMusic.play();
+// });
+
+// window.addEventListener('keydown', function(event) {
+//   if (event.code === 'KeyQ') {
+//     if (isMusicPlaying) {
+//       backgroundMusic.pause();
+//     } else {
+//       backgroundMusic.play();
+//     }
+//     isMusicPlaying = !isMusicPlaying;
+//   }
+// });
+
+function showInformation()
+{
+  // Use this to show information onscreen
+  let controls = new InfoBox();
+    controls.add("Pressione Q para ligar/desligar a música de fundo");
+    controls.addParagraph();
+    controls.show();
+    controls.infoBox.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+}
 
 // Iniciar o loop de renderização
 render();
