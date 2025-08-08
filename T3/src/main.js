@@ -223,32 +223,32 @@ window.addEventListener('keydown', (event) => {
    }
 });
 
-// let backgroundMusic;
-// let isMusicPlaying = true;
+let backgroundMusic;
+let isMusicPlaying = true;
 
-// const listener = new THREE.AudioListener();
-// camera.add(listener); // Adicione o listener na câmera!
+const listener = new THREE.AudioListener();
+camera.add(listener); // Adicione o listener na câmera!
 
-// const audioLoader = new THREE.AudioLoader();
-// backgroundMusic = new THREE.Audio(listener);
+const audioLoader = new THREE.AudioLoader();
+backgroundMusic = new THREE.Audio(listener);
 
-// audioLoader.load('../0_assetsT3/sounds/doom.mp3', function(buffer) {
-//   backgroundMusic.setBuffer(buffer);
-//   backgroundMusic.setLoop(true);
-//   backgroundMusic.setVolume(0.5);
-//   backgroundMusic.play();
-// });
+audioLoader.load('../0_assetsT3/sounds/doom.mp3', function(buffer) {
+  backgroundMusic.setBuffer(buffer);
+  backgroundMusic.setLoop(true);
+  backgroundMusic.setVolume(0.5);
+  backgroundMusic.play();
+});
 
-// window.addEventListener('keydown', function(event) {
-//   if (event.code === 'KeyQ') {
-//     if (isMusicPlaying) {
-//       backgroundMusic.pause();
-//     } else {
-//       backgroundMusic.play();
-//     }
-//     isMusicPlaying = !isMusicPlaying;
-//   }
-// });
+window.addEventListener('keydown', function(event) {
+  if (event.code === 'KeyQ') {
+    if (isMusicPlaying) {
+      backgroundMusic.pause();
+    } else {
+      backgroundMusic.play();
+    }
+    isMusicPlaying = !isMusicPlaying;
+  }
+});
 
 function showInformation()
 {
