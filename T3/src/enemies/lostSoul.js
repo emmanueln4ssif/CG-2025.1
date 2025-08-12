@@ -33,6 +33,19 @@ export class LostSoul {
         );
 
         this.loadModel(position, scene);
+        this.loadSounds();
+    }
+
+    loadSounds() {
+        this.sounds = {
+            attack: new Audio('../0_assetsT3/sounds/lostSoul/lost_soul_attack.wav'),
+            injured: new Audio('../0_assetsT3/sounds/lostSoul/injured.wav'),
+        };
+
+        // Para evitar delay no primeiro toque
+        Object.values(this.sounds).forEach(audio => {
+            audio.load();
+        });
     }
 
     loadModel(position, scene) {
@@ -99,10 +112,14 @@ export class LostSoul {
 
     takeDamage(amount) {
         if (this.isDying) return;
+
+        // Som de dano
+        this.sounds.injured.currentTime = 0;
+        this.sounds.injured.play();
+
         this.hp -= amount;
         if (this.hp < 0) this.hp = 0;
         
-        // Chama a função utilitária para atualizar a barra de vida
         updateHealthBar(this.healthBar, this.hp, this.maxHp);
 
         if (this.hp <= 0) {
@@ -116,6 +133,10 @@ export class LostSoul {
         const playerPosition = playerObject.position;
         if (this.mesh.position.distanceTo(playerPosition) < 40 && hasLineOfSight(this.mesh.position, playerPosition, this.collisionObjects, this.mesh)) {
             
+            // som do ataque
+            this.sounds.attack.currentTime = 0;
+            this.sounds.attack.play();
+
             // --- LÓGICA DE MUDANÇA DE ESTADO ATUALIZADA ---
             // 1. "Memoriza" a posição inicial da caveira
             this.chargeStartPosition.copy(this.mesh.position);
