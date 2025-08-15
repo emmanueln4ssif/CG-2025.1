@@ -51,7 +51,7 @@ export function buildKey(position, scene, color, brightnessColor, shininess, col
         color: color,
         transparent: true,
         opacity: 1,
-        emissive: brightnessColor, 
+        emissive: brightnessColor,
         emissiveIntensity: 0.3,
         shininess: shininess
     });
@@ -80,12 +80,30 @@ export function updateObject(mesh) {
 // CONSTRUÇÃO DE PEQUENAS PLATAFORMAS COM CHAVE -----------------------------------------------------------------
 
 //Função para criar uma plataforma com uma chave (Area 1)
-export function createPlatformWithKey(scene, area, size, color, colorName, collisionObjects, reflectiveColor) {
+export function createPlatformWithKey(scene, area, size, color, colorName, collisionObjects, receivedTextures) {
+
+    for (const texture in receivedTextures) {
+        const element = receivedTextures[texture];
+        element.wrapS = THREE.RepeatWrapping;
+        element.wrapT = THREE.RepeatWrapping;
+
+        element.repeat.set(1.85, 0.5);
+    }
+
+    const material = new THREE.MeshLambertMaterial({
+        aoMap: receivedTextures.aoMap,
+        map: receivedTextures.colorMap,
+        normalMap: receivedTextures.normalMap,
+        displacementMap: receivedTextures.displacementMap
+    });
+
+    material.displacementBias = 0;
+    material.displacementScale = 0;
 
     // Cria a plataforma
     platform = new THREE.Mesh(
         new THREE.CylinderGeometry(1.5, 1.5, 0.4, 24),
-        new THREE.MeshLambertMaterial({ color: color })
+        material
     );
 
     //Posiciona a plataforma em orientação a área que veio como parametro
@@ -98,7 +116,7 @@ export function createPlatformWithKey(scene, area, size, color, colorName, colli
     key.position.set(0, 1.5, 0); // posiciona de acordo com a plataforma
     key.name = colorName + "KeyOnPlatform";
     key.userData.fading = false; // para controle de fading da chave
-    
+
     if (key.name === "RedKeyOnPlatform") {
         redKey = key; // guarda a chave vermelha 
     }
@@ -188,7 +206,7 @@ export function checkKeyPickup(controls, platform, receivedKey, scene) {
         } else if (receivedKey.name === "yellowKey") {
             controls.getObject().hasYellowKey = true;
         }
-        
+
         //Começa o processo de fading da chave
         receivedKey.userData.fading = true;
     }

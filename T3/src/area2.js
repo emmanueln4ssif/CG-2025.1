@@ -202,6 +202,7 @@ function createKeySupport(position) {
 
   // Material padrão
   const texture = createRepeatingMaterial(1, 3, caixa, -0.15, -0.1);
+  const downTexture = createRepeatingMaterial(1, 1, caixa, -0.15, -0.1);
 
   // Bloco superior (tampa)
   const topGeometry = new THREE.BoxGeometry(5, 14, 5);
@@ -212,7 +213,7 @@ function createKeySupport(position) {
 
   // Bloco inferior (base de apoio)
   const bottomGeometry = new THREE.BoxGeometry(5, 4, 5);
-  const bottom = new THREE.Mesh(bottomGeometry, texture);
+  const bottom = new THREE.Mesh(bottomGeometry, downTexture);
   bottom.name = "bottomBlock";
   bottom.position.y = -4;
   group.add(bottom);
@@ -235,7 +236,7 @@ export function createElevatorDoor(x, y, z, doorWidth, doorHeight, doorDepth) {
 
   const ripaWidth = 1;
   const numRipas = Math.floor(doorWidth / ripaWidth);
-  const material = createRepeatingMaterial(0.25, 1, fenceMetalTextures);
+  const material = createRepeatingMaterial(0.2, 1, fenceMetalTextures);
   const materialBlock = createRepeatingMaterial(0.25, 0.1, blockTextures, 0, 0)
   material.transparent = true;
   material.opacity = 0.8;
@@ -458,7 +459,7 @@ function addMultipleRectangles(platform, sideSize, frontSize, height) {
   platform.add(addRectangle(4, 14, 4, { x: (-frontSize / 2 + 5) + 47, y: height + 7, z: (-sideSize / 2 + 5) }, 0x4B3621));
   platform.add(addRectangle(4, 10, 4, { x: (-frontSize / 2 + 5) + 33, y: height + 5, z: (-sideSize / 2 + 5) }, 0x4B3621));
 
-  platform.add(addRectangle(4, 10, 4, { x: (-frontSize / 2 + 5) + 6, y: height + 5, z: (-sideSize / 2 + 5) + 38 }, 0x4B3621));
+  platform.add(addRectangle(4, 10, 4, { x: (-frontSize / 2 + 5) + 1, y: height + 5, z: (-sideSize / 2 + 5) + 22 }, 0x4B3621));
   platform.add(addRectangle(4, 20, 4, { x: (-frontSize / 2 + 5) + 10, y: height + 10, z: (-sideSize / 2 + 5) + 55 }, 0x4B3621));
   platform.add(addRectangle(4, 16, 4, { x: (-frontSize / 2 + 5) + 5, y: height + 8, z: (-sideSize / 2 + 5) + 68 }, 0x4B3621));
   platform.add(addRectangle(4, 18, 4, { x: (-frontSize / 2 + 5) + 18, y: height + 9, z: (-sideSize / 2 + 9) + 85 }, 0x4B3621));

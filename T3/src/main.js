@@ -48,14 +48,14 @@ setupCrosshair();
 handleShootingState();
 
 // Setup dos inimigos
-createEnemy('lost_soul', new THREE.Vector3(115, 15, 190), scene, collisionObjects);
-createEnemy('lost_soul', new THREE.Vector3(205, 18, 190), scene, collisionObjects);
-createEnemy('lost_soul', new THREE.Vector3(160, 8, 150), scene, collisionObjects);
-createEnemy('lost_soul', new THREE.Vector3(120, 12, 120), scene, collisionObjects);
-createEnemy('lost_soul', new THREE.Vector3(200, 14, 120), scene, collisionObjects);
-createEnemy('cacodemon', new THREE.Vector3(5, 25, 190), scene, collisionObjects);
-createEnemy('cacodemon', new THREE.Vector3(45, 25, 150), scene, collisionObjects);
-createEnemy('cacodemon', new THREE.Vector3(-25, 25, 180), scene, collisionObjects);
+// createEnemy('lost_soul', new THREE.Vector3(115, 15, 190), scene, collisionObjects);
+// createEnemy('lost_soul', new THREE.Vector3(205, 18, 190), scene, collisionObjects);
+// createEnemy('lost_soul', new THREE.Vector3(160, 8, 150), scene, collisionObjects);
+// createEnemy('lost_soul', new THREE.Vector3(120, 12, 120), scene, collisionObjects);
+// createEnemy('lost_soul', new THREE.Vector3(200, 14, 120), scene, collisionObjects);
+// createEnemy('cacodemon', new THREE.Vector3(5, 25, 190), scene, collisionObjects);
+// createEnemy('cacodemon', new THREE.Vector3(45, 25, 150), scene, collisionObjects);
+// createEnemy('cacodemon', new THREE.Vector3(-25, 25, 180), scene, collisionObjects);
 
 // Redimensionamento da janela
 window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
@@ -141,7 +141,7 @@ function render() {
 
    //Se derrotou os inimigos da area 2, levanta o retângulo com a chave amarela...
    if (checkDefeated.defeatedEnemiesArea2 === true && !platformKey2Raised) {
-      raisePlatformTo(13, yellowKeyPlatform);
+      raisePlatformTo(12, yellowKeyPlatform);
       platformKey2Raised = true;
    }
 

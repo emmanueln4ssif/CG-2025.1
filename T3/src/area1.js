@@ -7,6 +7,13 @@ import { BufferGeometry, Group } from '../../build/three.module.js';
 
 const loader = new THREE.TextureLoader();
 
+export const pillarTextures = {
+    colorMap: loader.load('assets/textures/area1/pillars/color.png'),
+    aoMap: loader.load('assets/textures/area1/pillars/occlusion.png'),
+    displacementMap: loader.load('assets/textures/area1/pillars/displacement.png'),
+    normalMap: loader.load('assets/textures/area1/pillars/normal.png')
+}
+
 export function buildPlatformArea1(scene, side_size, front_size, height, position, step_size, number_of_steps, step_depth, color) {
 
     // Carrega texturas da plataforma
@@ -14,7 +21,6 @@ export function buildPlatformArea1(scene, side_size, front_size, height, positio
     const aoMap = loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_AmbientOcclusion.png');
     const displacementMap = loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_Displacement.png');
     const normalMap = loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_NormalGL.png');
-    const roughnessMap = loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_Roughness.png'); //não funciona?
 
     const stair_depth = number_of_steps * step_depth;
     const step_height = height / number_of_steps;
@@ -71,8 +77,6 @@ export function buildPlatformArea1(scene, side_size, front_size, height, positio
     const backMaterial = createRepeatingMaterial(22.59, 8.43, { colorMap, aoMap, displacementMap, normalMap });
     const sideTraseiraMaterial = createRepeatingMaterial(18, 0.5, { colorMap, aoMap, displacementMap, normalMap });
     const frontTraseiraMaterial = createRepeatingMaterial(22.59, 0.5, { colorMap, aoMap, displacementMap, normalMap });
-    //100-5.6 = 94.4; 5.6 para 0,5 assim como 94.4 para x = 8,43
-    //120-15 = 85; 42.5 para 8 assim como 120 para x = 22.59
 
     // Cria um array de materiais na ordem correta do boxgeometry, para cada uma das faces
     const frontMaterials = [
@@ -93,7 +97,7 @@ export function buildPlatformArea1(scene, side_size, front_size, height, positio
         frontTraseiraMaterial
     ];
 
-    // Crie o Mesh .
+    // Cria os meshes
     const frontal1 = new THREE.Mesh(frontalGeometry, frontMaterials);
     frontal1.position.set(center.x - (front_size - step_size) / 4 - step_size / 2, height / 2, center.z);
 
@@ -137,18 +141,21 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
     const baseZ = platformGroup.userData.z;
     const y = baseY + height;
 
-    //Criar texturas
-    const colorMap = loader.load('assets/textures/area1/pillars/Tiles083_2K-PNG_Color.png');
-    const aoMap = loader.load('assets/textures/area1/pillars/occlusion.png');
-    const displacementMap = loader.load('assets/textures/area1/pillars/Tiles083_2K-PNG_Displacement.png');
-    const normalMap = loader.load('assets/textures/area1/pillars/Tiles083_2K-PNG_NormalGL.png');
-
     //Materiais necessários
-    const columnMaterial = createRepeatingMaterial(1, 1, { colorMap, aoMap, displacementMap, normalMap });
-    const beamMaterial = createRepeatingMaterial(25, 2, { colorMap, aoMap, displacementMap, normalMap });
-    const topBeamMaterial = createRepeatingMaterial(25, 0.25, { colorMap, aoMap, displacementMap, normalMap });
-    const capitelMaterial = createRepeatingMaterial(1.5, 0.25, { colorMap, aoMap, displacementMap, normalMap });
+    const columnMaterial = createRepeatingMaterial(1, 1, pillarTextures);
+    const beamMaterial = createRepeatingMaterial(25, 2, pillarTextures);
+    const topBeamMaterial = createRepeatingMaterial(25, 0.25, pillarTextures);
+    const capitelMaterial = createRepeatingMaterial(1.5, 0.25, pillarTextures);
 
+    // Ajuste de escala do displacement e bias
+    columnMaterial.displacementBias = -0.1; 
+    columnMaterial.displacementScale = 0.2; 
+    beamMaterial.displacementScale = 0.2;
+    beamMaterial.displacementBias = -0.1;
+    topBeamMaterial.displacementScale = 0.2;
+    topBeamMaterial.displacementBias = -0.1;
+    capitelMaterial.displacementScale = 0.1;
+    capitelMaterial.displacementBias = -0.05;
 
     function createColumn(broken = false) {
 
@@ -158,8 +165,7 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
         const brokenFactor = broken ? THREE.MathUtils.randFloat(0.3, 0.6) : 1.0;
         const brokenAngle = broken ? THREE.MathUtils.degToRad(THREE.MathUtils.randFloat(-15, 15)) : 0;
 
-        // --- Geometria do Fuste (Shaft) com mais detalhes ---
-        // Adicionamos 64 segmentos de altura para o displacement funcionar
+        // Geometria
         const shaftHeight = columnHeight * brokenFactor;
         const shaftGeometry = new THREE.CylinderGeometry(columnRadius, columnRadius, shaftHeight, 16, 64);
         const shaft = new THREE.Mesh(shaftGeometry, columnMaterial);
@@ -168,7 +174,7 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
         shaft.position.y = shaftHeight / 2;
         column.add(shaft);
 
-        // --- Capitel (Top) ---
+        // Capitel
         if (!broken || Math.random() > 0.5) {
             const overlap = 0.4;
             const topGeometry = new THREE.CylinderGeometry(columnRadius * 1.3, columnRadius * 1.3, 1.5, 16, 4);
@@ -177,7 +183,7 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
             column.add(top);
         }
 
-        // --- Base ---
+        // Base 
         if (!broken || Math.random() > 0.3) {
             const overlap = 0.4;
             const baseGeometry = new THREE.CylinderGeometry(columnRadius * 1.3, columnRadius * 1.3, 1.5, 8, 4);
@@ -192,7 +198,6 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
             column.rotation.z = brokenAngle * Math.random();
         }
 
-        // Não é necessário definir cast/receive shadow para o Group se você já define nos Meshes internos
         return column;
     }
 
@@ -296,13 +301,18 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
     const spacing = 30 * scale;
 
     //Criar texturas
-    const colorMap = loader.load('assets/textures/area1/pillars/Tiles083_2K-PNG_Color.png');
-    const aoMap = loader.load('assets/textures/area1/pillars/Tiles083_2K-PNG_AmbientOcclusion.png');
-    const displacementMap = loader.load('assets/textures/area1/pillars/Tiles083_2K-PNG_Displacement.png');
-    const normalMap = loader.load('assets/textures/area1/pillars/Tiles083_2K-PNG_NormalGL.png');
-    const columnMaterial = createRepeatingMaterial(1, 2, { colorMap, aoMap, displacementMap, normalMap });
-    const topBeamMaterial = createRepeatingMaterial(6, 0.25, { colorMap, aoMap, displacementMap, normalMap });
-    const roofMaterial = createRepeatingMaterial(3, 0.25, { colorMap, aoMap, displacementMap, normalMap });
+    
+    const columnMaterial = createRepeatingMaterial(1, 2, pillarTextures);
+    const topBeamMaterial = createRepeatingMaterial(6, 0.25, pillarTextures);
+    const roofMaterial = createRepeatingMaterial(3, 0.25, pillarTextures);
+
+    //Ajuste de escala e bias do displacement
+    columnMaterial.displacementScale = 0.2;
+    columnMaterial.displacementBias = -0.1;
+    topBeamMaterial.displacementScale = 0.2;
+    topBeamMaterial.displacementBias = -0.1;
+    roofMaterial.displacementScale = 0.2;
+    roofMaterial.displacementBias = -0.1;
 
     //Cria uma coluna  simples
     function createColumn(xOffset) {
@@ -391,7 +401,7 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
 }
 
 // Função para definir o quanto um material se repete:
-function createRepeatingMaterial(repeatX, repeatY, maps) {
+function createRepeatingMaterial(repeatX, repeatY, maps, displacement, displacementBias) {
     // Função auxiliar para clonar e configurar cada textura
     const setupTexture = (map) => {
         if (!map) return null;
@@ -407,8 +417,8 @@ function createRepeatingMaterial(repeatX, repeatY, maps) {
         map: setupTexture(maps.colorMap),
         aoMap: setupTexture(maps.aoMap),
         displacementMap: setupTexture(maps.displacementMap),
-        displacementScale: 0.3,
-        displacementBias: -0.15,
+        displacementScale: 0,
+        displacementBias: 0,
         normalMap: setupTexture(maps.normalMap),
     });
 }

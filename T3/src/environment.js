@@ -4,21 +4,21 @@ import { createGroundPlaneXZ } from '../../libs/util/util.js';
 import { buildKey, createPlatformWithKey, updateObject, key, addRectangleWithKey } from './key.js';
 import { controls } from './player.js';
 import { Group } from '../../build/three.module.js';
-import { addGreekColumnsToPlatform, createGreekFrontColumns, buildPlatformArea1 } from './area1.js';
+import { addGreekColumnsToPlatform, createGreekFrontColumns, buildPlatformArea1, pillarTextures } from './area1.js';
 import { buildPlatformWithElevator, createRepeatingMaterial } from './area2.js';
 
 
 export let elevatorBase, yellowKey, rectangleWithYellowKey, area2;
 
 const textureLoader = new THREE.TextureLoader();
-const wallMaterial = {
+const wallTextures = {
   colorMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_Color.png'),
   aoMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_AmbientOcclusion.png'),
   normalMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_NormalGL.png'),
   displacementMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_Displacement.png'),
 };
 
-const bricksMaterial = {
+const bricksTexture = {
   colorMap: textureLoader.load('assets/textures/floor/bricks/PavingStones086_1K-PNG_Color.png'),
   aoMap: textureLoader.load('assets/textures/floor/bricks/PavingStones086_1K-PNG_AmbientOcclusion.png'),
   normalMap: textureLoader.load('assets/textures/floor/bricks/PavingStones086_1K-PNG_NormalGL.png'),
@@ -30,11 +30,11 @@ function createPlane() {
 
   // Aplica textura definida
 
-  const floorTexture = createRepeatingMaterial(100, 100, bricksMaterial);
+  const floorMaterial = createRepeatingMaterial(100, 100, bricksTexture);
 
   let plane = createGroundPlaneXZ(500, 500);
   plane.userData.isPlatform = true;
-  plane.material = floorTexture;
+  plane.material = floorMaterial;
   plane.receiveShadow = true;
 
   return plane;
@@ -54,7 +54,7 @@ export function setupEnvironment(scene, collisionObjects, light) {
   addPlatformToScene(scene, area1, collisionObjects);
   addGreekColumnsToPlatform(area1, collisionObjects);
   createGreekFrontColumns(scene, { x: 160, y: 4, z: 107 }, 0.45, collisionObjects);
-  createPlatformWithKey(scene, area1, 1, 0xE2725B, "Red", collisionObjects); // Cria plataforma com chave vermelha
+  createPlatformWithKey(scene, area1, 1, 0xE2725B, "Red", collisionObjects, pillarTextures); // Cria plataforma com chave vermelha
 
   // Area 2: Plataforma com porta e parte elevatória
   yellowKey = buildKey({ x: 0, y: 0, z: 0 }, scene, "Yellow", "0xffd700", 80, collisionObjects); // Cria a chave amarela
@@ -164,7 +164,9 @@ function addPlatformToScene(scene, platform, collisionObjects) {
 // Adiciona paredes ao redor do plano
 function addWallsAroundPlane(scene, collisionObjects, plane_size, wall_height, wall_thickness, color) {
 
-  const floorTexture = createRepeatingMaterial(50, 2, wallMaterial);
+  const floorMaterial = createRepeatingMaterial(50, 2, wallTextures);
+  floorMaterial.displacementScale = 0.2;
+  floorMaterial.displacementBias = -0.1;
 
   const half = plane_size / 2;
   const walls = [
@@ -177,7 +179,7 @@ function addWallsAroundPlane(scene, collisionObjects, plane_size, wall_height, w
   walls.forEach(wall => {
     const wallMesh = new THREE.Mesh(
       new THREE.BoxGeometry(...wall.size),
-      floorTexture
+      floorMaterial
     );
     wallMesh.position.set(...wall.pos);
     scene.add(wallMesh);
