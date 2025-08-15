@@ -1,5 +1,6 @@
 // area3.js
 import * as THREE from 'three';
+import {GLTFLoader} from '/build/jsm/loaders/GLTFLoader.js';
 import { OBJLoader } from '/build/jsm/loaders/OBJLoader.js';
 import { MTLLoader } from '/build/jsm/loaders/MTLLoader.js';
 import { getMaxSize } from "/libs/util/util.js";
@@ -23,64 +24,39 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
   floor.receiveShadow = true;
   areaGroup.add(floor);
 
-  // Estrutura do hangar (cilindro deitado e cortado ao meio)
-  const hangarRadius = Math.min(frontSize, sideSize) / 2.5;
-  const hangarLength = frontSize * 0.8;
-  const hangarSegments = 32;
+  // Carregar o modelo do hangar
+  const loader = new GLTFLoader();
+  loader.load(
+    'assets/hangar/scene.gltf', 
+    function (gltf) {
+      const hangarModel = gltf.scene;
+      
+      // Configurar sombras para todos os meshes do modelo
+      hangarModel.traverse(function(node) {
+        if (node.isMesh) {
+          node.castShadow = true;
+          node.receiveShadow = true;
+        }
+      });
 
-  // Criar geometria de cilindro cortado ao meio
-  const hangarGeometry = new THREE.CylinderGeometry(
-    hangarRadius, // radiusTop
-    hangarRadius, // radiusBottom
-    hangarLength, // height (comprimento)
-    hangarSegments, // radialSegments
-    1, // heightSegments
-    true, // openEnded
-    0, // thetaStart
-    Math.PI // thetaLength (meia circunferência)
+      // Ajustar escala e posição do hangar
+      hangarModel.scale.set(2, 2, 2); // Ajuste esses valores conforme necessário
+      hangarModel.position.set(position.x, height, position.z);
+      
+      // Rotacionar se necessário (ajuste o ângulo conforme necessário)
+      hangarModel.rotation.y = Math.PI / 2;
+
+      areaGroup.add(hangarModel);
+    },
+    function (xhr) {
+      console.log((xhr.loaded / xhr.total * 100) + '% carregado');
+    },
+    function (error) {
+      console.error('Erro ao carregar o modelo:', error);
+    }
   );
 
-  // Rotacionar para deitar o cilindro
-  hangarGeometry.rotateZ(Math.PI / 2);
-  hangarGeometry.rotateY(Math.PI / 2);
-
-  // Material do hangar
-  const hangarMaterial = new THREE.MeshLambertMaterial({
-    color: 0x888888,
-    side: THREE.DoubleSide
-  });
-
-  // Mesh do hangar
-  const hangarMesh = new THREE.Mesh(hangarGeometry, hangarMaterial);
-  hangarMesh.castShadow = true;
-
-  // Posicionar o hangar sobre o piso
-  hangarMesh.position.set(
-    position.x,
-    height,
-    position.z
-  );
-
-  // ---- FACE TRASEIRA (MEIA-LUA) ---- //
-  const faceShape = new THREE.Shape();
-  faceShape.moveTo(-hangarRadius, 0);
-  faceShape.absarc(0, 0, hangarRadius, Math.PI, 0, false);
-
-  const faceGeometry = new THREE.ShapeGeometry(faceShape);
-  const faceMaterial = new THREE.MeshLambertMaterial({ color: 0x888888, side: THREE.DoubleSide });
-  const backFace = new THREE.Mesh(faceGeometry, faceMaterial);
-
-  // Posiciona a face atrás do hangar (pegando o ponto final do cilindro)
-  backFace.position.set(position.x, height, position.z + hangarLength / 2);
-  backFace.castShadow = true;
-  // backFace.rotation.y = Math.PI;
-  backFace.rotation.x = Math.PI;
-  backFace.receiveShadow = true;
-
-  areaGroup.add(backFace);
-
-  areaGroup.add(hangarMesh);
-
+  // Carrega o avião (mantido do código original)
   loadOBJFile('../assets/objects/', 'plane', 20.0, 0, true);
 
   function loadOBJFile(modelPath, modelName, desiredScale, angle, visibility) {

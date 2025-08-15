@@ -39,7 +39,7 @@ export function setupEnvironment(scene, collisionObjects, light) {
   addPlatformToScene(scene, area2, collisionObjects);
 
   // Área 3: Plataforma com hangar
-  const area3 = buildHangarPlatform(scene, 100, 120, 0.5, { x: -150, y: 0, z: 150 });
+  const area3 = buildHangarPlatform(scene, 100, 120, 0.5, { x: -150, y: 0, z: 150 }, collisionObjects);
   addPlatformToScene(scene, area3, collisionObjects);
 
   // Área 4: Plataforma simples
