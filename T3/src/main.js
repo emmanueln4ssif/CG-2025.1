@@ -135,7 +135,7 @@ function render() {
 
    //Se derrotou os inimigos da area 1, sobe a plataforma com a chave vermelha...
    if (checkDefeated.defeatedEnemiesArea1 === true && !platformKey1Raised) {
-      raisePlatformTo(7, platform);
+      raisePlatformTo(4.5, platform);
       platformKey1Raised = true;
    }
 
@@ -215,13 +215,15 @@ function render() {
 
    // Renderização da cena
    renderer.render(scene, camera);
+   renderer.toneMapping = THREE.ACESFilmicToneMapping;
+   renderer.toneMappingExposure = 1.0;
    requestAnimationFrame(render);
 }
 
 //teste para levantar a chave vermelha com a tecla 'E' (em caso de erro na animação)
 window.addEventListener('keydown', (event) => {
    if (event.key === 'e') {
-      raisePlatformTo(6, platform); // altura desejada
+      raisePlatformTo(4.5, platform); // altura desejada
    }
 });
 

@@ -5,30 +5,37 @@ import { buildKey, createPlatformWithKey, updateObject, key, addRectangleWithKey
 import { controls } from './player.js';
 import { Group } from '../../build/three.module.js';
 import { addGreekColumnsToPlatform, createGreekFrontColumns, buildPlatformArea1 } from './area1.js';
-import { buildPlatformWithElevator } from './area2.js';
+import { buildPlatformWithElevator, createRepeatingMaterial } from './area2.js';
 
 
 export let elevatorBase, yellowKey, rectangleWithYellowKey, area2;
 
+const textureLoader = new THREE.TextureLoader();
+const wallMaterial = {
+  colorMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_Color.png'),
+  aoMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_AmbientOcclusion.png'),
+  normalMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_NormalGL.png'),
+  displacementMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_Displacement.png'),
+};
+
+const bricksMaterial = {
+  colorMap: textureLoader.load('assets/textures/floor/bricks/PavingStones086_1K-PNG_Color.png'),
+  aoMap: textureLoader.load('assets/textures/floor/bricks/PavingStones086_1K-PNG_AmbientOcclusion.png'),
+  normalMap: textureLoader.load('assets/textures/floor/bricks/PavingStones086_1K-PNG_NormalGL.png'),
+  displacementMap: textureLoader.load('assets/textures/floor/bricks/PavingStones086_1K-PNG_Displacement.png'),
+};
 
 //Cria o plano geral do jogo
 function createPlane() {
 
   // Aplica textura definida
-  const textureLoader = new THREE.TextureLoader();
-  const floorTexture = textureLoader.load('assets/textures/floor/rockyGrass.jpg');
 
-  // Configurar repetição da textura
-  floorTexture.wrapS = THREE.RepeatWrapping;
-  floorTexture.wrapT = THREE.RepeatWrapping;
-
-  // Ajustar o número de repetições (exemplo: repetir 10x em cada eixo)
-  floorTexture.repeat.set(5, 5);
+  const floorTexture = createRepeatingMaterial(100, 100, bricksMaterial);
 
   let plane = createGroundPlaneXZ(500, 500);
   plane.userData.isPlatform = true;
-  plane.material = new THREE.MeshLambertMaterial({ map: floorTexture });
-  plane.receiveShadow = true; 
+  plane.material = floorTexture;
+  plane.receiveShadow = true;
 
   return plane;
 }
@@ -157,17 +164,7 @@ function addPlatformToScene(scene, platform, collisionObjects) {
 // Adiciona paredes ao redor do plano
 function addWallsAroundPlane(scene, collisionObjects, plane_size, wall_height, wall_thickness, color) {
 
-  const textureLoader = new THREE.TextureLoader();
-  const floorTexture = textureLoader.load('assets/textures/floor/pavingStones.png');
-  const negativeTexture = textureLoader.load('assets/textures/area1/stone_wall_neg.png'); // mapa complementar
-
-
-  // Configurar repetição da textura
-  floorTexture.wrapS = THREE.RepeatWrapping;
-  floorTexture.wrapT = THREE.RepeatWrapping;
-
-  // Ajustar o número de repetições (exemplo: repetir 10x em cada eixo)
-  floorTexture.repeat.set(40, 1);
+  const floorTexture = createRepeatingMaterial(50, 2, wallMaterial);
 
   const half = plane_size / 2;
   const walls = [
@@ -180,7 +177,7 @@ function addWallsAroundPlane(scene, collisionObjects, plane_size, wall_height, w
   walls.forEach(wall => {
     const wallMesh = new THREE.Mesh(
       new THREE.BoxGeometry(...wall.size),
-      new THREE.MeshLambertMaterial({ map: floorTexture, bumpMap: negativeTexture, bumpScale: 0.1 })
+      floorTexture
     );
     wallMesh.position.set(...wall.pos);
     scene.add(wallMesh);

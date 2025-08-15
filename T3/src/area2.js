@@ -33,7 +33,6 @@ const metalTextures = {
   colorMap: loader.load('assets/textures/area2/metal/MetalPlates001_1K-PNG_Color.png'),
   metalnessMap: loader.load('assets/textures/area2/metal/MetalPlates001_1K-PNG_Metalness.png'),
   displacementMap: loader.load('assets/textures/area2/metal/MetalPlates001_1K-PNG_Displacement.png'),
-  roughnessMap: loader.load('assets/textures/area2/metal/MetalPlates001_1K-PNG_Roughness.png'),
   normalMap: loader.load('assets/textures/area2/metal/MetalPlates001_1K-PNG_NormalGL.png')
 };
 
@@ -41,7 +40,7 @@ const floorMetalTextures = {
   colorMap: loader.load('assets/textures/area2/floor/floor_color.png'),
   metalnessMap: loader.load('assets/textures/area2/floor/floor_Metalness.png'),
   displacementMap: loader.load('assets/textures/area2/floor/floor_Displacement.png'),
-  roughnessMap: loader.load('assets/textures/area2/floor/floor_Roughness.png'),
+  specularMap: loader.load('assets/textures/area2/floor/floor_Roughness.png'),
   normalMap: loader.load('assets/textures/area2/floor/floor_NormalGL.png')
 };
 
@@ -56,7 +55,6 @@ const elevatorBaseTextures = {
   colorMap: loader.load('assets/textures/area2/elevator/MetalPlates005_1K-PNG_Color.png'),
   metalnessMap: loader.load('assets/textures/area2/elevator/MetalPlates005_1K-PNG_Metalness.png'),
   displacementMap: loader.load('assets/textures/area2/elevator/MetalPlates005_1K-PNG_Displacement.png'),
-  roughnessMap: loader.load('assets/textures/area2/elevator/MetalPlates005_1K-PNG_Roughness.png'),
   normalMap: loader.load('assets/textures/area2/elevator/MetalPlates005_1K-PNG_NormalGL.png')
 };
 
@@ -64,13 +62,21 @@ const blockTextures = {
   colorMap: loader.load('assets/textures/area2/elevatorBase/Metal056C_1K-PNG_Color.png'),
   metalnessMap: loader.load('assets/textures/area2/elevatorBase/Metal056C_1K-PNG_Metalness.png'),
   displacementMap: loader.load('assets/textures/area2/elevatorBase/Metal056C_1K-PNG_Displacement.png'),
-  roughnessMap: loader.load('assets/textures/area2/elevatorBase/Metal056C_1K-PNG_Roughness.png'),
   normalMap: loader.load('assets/textures/area2/elevatorBase/Metal056C_1K-PNG_NormalGL.png')
 };
 
 const caixa = {
-  colorMap: loader.load('assets/textures/caixa.jpg'),
+  colorMap: loader.load('assets/textures/area2/box/box.jpg'),
+  displacementMap: loader.load('assets/textures/area2/box/box_displacement.png'),
+  normalMap: loader.load('assets/textures/area2/box/box_normal.png'),
+  specularMap: loader.load('assets/textures/area2/box/box_specular.png')
 }
+
+const ironPlateTextures = {
+  colorMap: loader.load('assets/textures/area2/iron_plate/iron_plate.jpg'),
+  displacementMap: loader.load('assets/textures/area2/iron_plate/iron_plate_displacement.png'),
+  normalMap: loader.load('assets/textures/area2/iron_plate/iron_plate_normal.png')
+};
 
 // AREA 2 ---------------------------------------------------------------------------
 // Esta seção contém funções relacionadas à Área 2, incluindo a criação da plataforma com elevador
@@ -111,7 +117,8 @@ export function buildPlatformWithElevator(scene, sideSize, frontSize, height, po
   const sideTraseiraMaterial = createRepeatingMetalMaterial(9, 1, metalTextures);
   const frontTraseiraMaterial = createRepeatingMetalMaterial(12, 1, metalTextures);
   const floorTraseiraMaterial = createRepeatingMaterial(32.59, 20, floorMetalTextures);
-  const floorMainMaterial = createRepeatingMaterial(10, 3, floorMetalTextures);
+  const floorMainMaterial = createRepeatingMaterial(8, 3, floorMetalTextures);
+  const ironPlateMaterial = createRepeatingMaterial(22, 4, ironPlateTextures, 0.8, -0.4);
   //100-5.6 = 94.4; 5.6 para 0,5 assim como 94.4 para x = 8,43
   //120-15 = 85; 42.5 para 8 assim como 120 para x = 22.59
 
@@ -121,8 +128,8 @@ export function buildPlatformWithElevator(scene, sideSize, frontSize, height, po
     sideMaterial, // esq 
     floorMainMaterial, // cima
     mainMaterial, // baixo
-    mainMaterial, // frente
-    mainMaterial  // trás
+    ironPlateMaterial, // trás
+    ironPlateMaterial  // frente
   ];
 
   const traseiraMaterials = [
@@ -194,18 +201,18 @@ function createKeySupport(position) {
   const group = new THREE.Group();
 
   // Material padrão
-  const material = new THREE.MeshLambertMaterial({ color: 0x4B3621 });
+  const texture = createRepeatingMaterial(1, 3, caixa, -0.15, -0.1);
 
   // Bloco superior (tampa)
   const topGeometry = new THREE.BoxGeometry(5, 14, 5);
-  const top = new THREE.Mesh(topGeometry, material);
+  const top = new THREE.Mesh(topGeometry, texture);
   top.name = "topBlock";
   top.position.y = 9.5;
   group.add(top);
 
   // Bloco inferior (base de apoio)
   const bottomGeometry = new THREE.BoxGeometry(5, 4, 5);
-  const bottom = new THREE.Mesh(bottomGeometry, material);
+  const bottom = new THREE.Mesh(bottomGeometry, texture);
   bottom.name = "bottomBlock";
   bottom.position.y = -4;
   group.add(bottom);
@@ -229,6 +236,7 @@ export function createElevatorDoor(x, y, z, doorWidth, doorHeight, doorDepth) {
   const ripaWidth = 1;
   const numRipas = Math.floor(doorWidth / ripaWidth);
   const material = createRepeatingMaterial(0.25, 1, fenceMetalTextures);
+  const materialBlock = createRepeatingMaterial(0.25, 0.1, blockTextures, 0, 0)
   material.transparent = true;
   material.opacity = 0.8;
 
@@ -251,7 +259,8 @@ export function createElevatorDoor(x, y, z, doorWidth, doorHeight, doorDepth) {
   //bloco que vai ficar com a chave
   const activationBlock = new THREE.Mesh(
     new THREE.BoxGeometry(3, 0.5, 2),
-    new THREE.MeshLambertMaterial({ color: 0x4B3621 })
+    materialBlock
+    
   );
   activationBlock.position.set(doorGroup.position.x, 1, doorGroup.position.z - 0.5);
   doorGroup.add(activationBlock);
@@ -413,11 +422,13 @@ export function canUseElevator() {
 export function addRectangle(width, height, depth, position, color) {
 
   //const rectangleMaterial = createRepeatingMaterial(3/6, height/6, caixa);
-  const texture = createRepeatingMaterial(width/4, height/4, caixa);
-
+  const texture = createRepeatingMaterial(width/4, height/4, caixa, -0.15, -0.1);
+  texture.normalScale.set(0.1, 0.1);
+  const geometry = new THREE.BoxGeometry(width, height, depth);
+  geometry.attributes.uv2 = geometry.attributes.uv;
 
   const rectangle = new THREE.Mesh(
-    new THREE.BoxGeometry(width, height, depth),
+    geometry,
     texture
   );
 
@@ -471,8 +482,8 @@ function addMultipleRectangles(platform, sideSize, frontSize, height) {
   platform.add(addRectangle(4, 10, 4, { x: -((-frontSize / 2 + 5) + 47), y: height + 5, z: (-sideSize / 2 + 5) }, 0x4B3621));
   platform.add(addRectangle(4, 10, 4, { x: -((-frontSize / 2 + 5) + 33), y: height + 5, z: (-sideSize / 2 + 5) }, 0x4B3621));
 
-  platform.add(addRectangle(4, 10, 4, { x: -((-frontSize / 2 + 5) + 6), y: height + 5, z: ((-sideSize / 2 + 5) + 38) }, 0x4B3621));
-  platform.add(addRectangle(4, 20, 4, { x: -((-frontSize / 2 + 5) + 10), y: height + 10, z: (-sideSize / 2 + 5) + 55 }, 0x4B3621));
+  platform.add(addRectangle(4, 10, 4, { x: -((-frontSize / 2 + 5)), y: height + 5, z: ((-sideSize / 2 + 5) + 20) }, 0x4B3621));
+  platform.add(addRectangle(4, 20, 4, { x: -((-frontSize / 2 + 5) + 10), y: height + 10, z: (-sideSize / 2 + 5) + 45 }, 0x4B3621));
   platform.add(addRectangle(4, 16, 4, { x: -((-frontSize / 2 + 5) + 5), y: height + 8, z: (-sideSize / 2 + 5) + 68 }, 0x4B3621));
   platform.add(addRectangle(4, 18, 4, { x: -((-frontSize / 2 + 5) + 18), y: height + 9, z: (-sideSize / 2 + 9) + 85 }, 0x4B3621));
   platform.add(addRectangle(4, 18, 4, { x: -((-frontSize / 2 + 5) + 40), y: height + 9, z: (-sideSize / 2 + 9) + 75 }, 0x4B3621));
@@ -488,7 +499,7 @@ function addMultipleRectangles(platform, sideSize, frontSize, height) {
 }
 
 // Função para definir o quanto um material se repete:
-function createRepeatingMaterial(repeatX, repeatY, maps) {
+export function createRepeatingMaterial(repeatX, repeatY, maps, displacement, displacementBias) {
   const setupTexture = (map) => {
     if (!map) return null;
     const texture = map.clone();
@@ -502,10 +513,11 @@ function createRepeatingMaterial(repeatX, repeatY, maps) {
     map: setupTexture(maps.colorMap),
     aoMap: setupTexture(maps.aoMap),
     displacementMap: setupTexture(maps.displacementMap),
-    displacementScale: 0.2,
-    displacementBias: -0.1,
+    displacementScale: displacement || 0.3,
+    displacementBias: displacementBias || -0.15,
     normalMap: setupTexture(maps.normalMap),
     alphaMap: setupTexture(maps.alphaMap),
+    specularMap: setupTexture(maps.specularMap),
     reflectivity: 0.5
   });
 }
