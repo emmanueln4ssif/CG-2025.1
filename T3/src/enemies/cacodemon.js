@@ -29,8 +29,23 @@ export class Cacodemon {
             new THREE.Vector3(-55, 0, 100),
             new THREE.Vector3(65, 50, 200)
         );
-
+        this.loadSounds();
         this.loadModel(position);
+    }
+
+    loadSounds() {
+        this.sounds = {
+            attack: new Audio('../0_assetsT3/sounds/cacoDemon/cacodemonAttack.wav'),
+            injured: new Audio('../0_assetsT3/sounds/cacoDemon/cacodemonInjured.wav'),
+            death: new Audio('../0_assetsT3/sounds/cacoDemon/cacodemonDeath.wav'),
+            nearby: new Audio('../0_assetsT3/sounds/cacoDemon/cacodemonNearby.wav'),
+            sight: new Audio('../0_assetsT3/sounds/cacoDemon/cacodemonSight.wav')
+        };
+
+        // Para evitar delay no primeiro toque
+        Object.values(this.sounds).forEach(audio => {
+            audio.load();
+        });
     }
 
     loadModel(position) {
@@ -106,6 +121,7 @@ export class Cacodemon {
             this.isActive = true;
             this.state = 'attacking';
             this.speed = this.baseSpeed;
+            this.sounds.sight.play();
             this.changePatrolDirection(); // opcional
         }
     }
@@ -117,7 +133,10 @@ export class Cacodemon {
         if (this.hp <= 0) {
             this.isDying = true;
             this.state = 'dying';
+            this.sounds.death.play();
             if (this.healthBar) this.mesh.remove(this.healthBar);
+        } else {
+            this.sounds.injured.play();
         }
     }
 
@@ -183,6 +202,7 @@ export class Cacodemon {
     }
 
     shootProjectile(playerPosition) {
+        this.sounds.attack.play();
         const projectile = new THREE.Mesh(
             new THREE.SphereGeometry(0.3, 8, 8),
             new THREE.MeshBasicMaterial({ color: 0xffff00 })

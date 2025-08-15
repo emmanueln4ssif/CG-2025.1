@@ -9,6 +9,10 @@ let keyFading = false;
 let keyFadeSpeed = 0.02;
 let emissiveBoost = 0.02;
 
+// Som da chave
+const keySound = new Audio('../0_assetsT3/sounds/chave.wav');
+keySound.load(); // Pré-carrega o som para evitar delay
+
 // CONSTRUÇÃO DE OBJETO CHAVE -------------------------------------------------------------------------------
 
 // Função para construir uma chave usando CSG
@@ -188,6 +192,9 @@ export function checkKeyPickup(controls, platform, receivedKey, scene) {
         } else if (receivedKey.name === "yellowKey") {
             controls.getObject().hasYellowKey = true;
         }
+        
+        // Toca o som de pegar a chave
+        keySound.play();
         
         //Começa o processo de fading da chave
         receivedKey.userData.fading = true;

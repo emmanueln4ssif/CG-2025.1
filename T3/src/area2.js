@@ -5,6 +5,12 @@ import { buildKey, createPlatformWithKey, updateObject, key, addRectangleWithKey
 import { controls } from './player.js';
 import { Group } from '../../build/three.module.js';
 
+// Sons
+const doorSound = new Audio('../0_assetsT3/sounds/doorOpening.wav');
+const elevatorSound = new Audio('../0_assetsT3/sounds/plataformaMovendo.wav');
+doorSound.load();
+elevatorSound.load();
+
 export const elevatorState = {
   moving: false,
   goingDown: false,
@@ -220,6 +226,7 @@ export function openDoor(scene) {
   if (doorIsOpening) return;
 
   doorIsOpening = true;
+  doorSound.play(); // Toca o som da porta abrindo
 
   let doorOpenDistance = doorGroup.parent.parent.userData.elevatorLength;
 
@@ -259,6 +266,11 @@ export function updateElevator() {
   const { moving, base, targetY } = elevatorState;
 
   if (!moving || !base) return;
+
+  // Se o elevador acabou de começar a se mover
+  if (Math.abs(base.position.y - targetY) > 1) {
+    elevatorSound.play();
+  }
 
   base.position.y = THREE.MathUtils.lerp(base.position.y, targetY, 0.015);
 
