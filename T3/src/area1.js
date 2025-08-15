@@ -139,7 +139,7 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
 
     //Criar texturas
     const colorMap = loader.load('assets/textures/area1/pillars/Tiles083_2K-PNG_Color.png');
-    const aoMap = loader.load('assets/textures/area1/pillars/Tiles083_2K-PNG_AmbientOcclusion.png');
+    const aoMap = loader.load('assets/textures/area1/pillars/occlusion.png');
     const displacementMap = loader.load('assets/textures/area1/pillars/Tiles083_2K-PNG_Displacement.png');
     const normalMap = loader.load('assets/textures/area1/pillars/Tiles083_2K-PNG_NormalGL.png');
 
@@ -147,6 +147,7 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
     const columnMaterial = createRepeatingMaterial(1, 1, { colorMap, aoMap, displacementMap, normalMap });
     const beamMaterial = createRepeatingMaterial(25, 2, { colorMap, aoMap, displacementMap, normalMap });
     const topBeamMaterial = createRepeatingMaterial(25, 0.25, { colorMap, aoMap, displacementMap, normalMap });
+    const capitelMaterial = createRepeatingMaterial(1.5, 0.25, { colorMap, aoMap, displacementMap, normalMap });
 
 
     function createColumn(broken = false) {
@@ -171,7 +172,7 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
         if (!broken || Math.random() > 0.5) {
             const overlap = 0.4;
             const topGeometry = new THREE.CylinderGeometry(columnRadius * 1.3, columnRadius * 1.3, 1.5, 16, 4);
-            const top = new THREE.Mesh(topGeometry, columnMaterial); // Use o novo material
+            const top = new THREE.Mesh(topGeometry, capitelMaterial);
             top.position.y = shaftHeight + 0.75 - overlap;
             column.add(top);
         }
@@ -180,8 +181,8 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
         if (!broken || Math.random() > 0.3) {
             const overlap = 0.4;
             const baseGeometry = new THREE.CylinderGeometry(columnRadius * 1.3, columnRadius * 1.3, 1.5, 8, 4);
-            const base = new THREE.Mesh(baseGeometry, columnMaterial); // Use o novo material
-            base.position.y = -0.75 + overlap; // Corrigido para posicionar abaixo do fuste
+            const base = new THREE.Mesh(baseGeometry, capitelMaterial);
+            base.position.y = -0.75 + overlap; 
             column.add(base);
         }
 
