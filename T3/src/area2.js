@@ -117,7 +117,7 @@ export function buildPlatformWithElevator(scene, sideSize, frontSize, height, po
   const sideTraseiraMaterial = createRepeatingMetalMaterial(9, 1, metalTextures);
   const frontTraseiraMaterial = createRepeatingMetalMaterial(12, 1, metalTextures);
   const floorTraseiraMaterial = createRepeatingMaterial(32.59, 20, floorMetalTextures);
-  const floorMainMaterial = createRepeatingMaterial(8, 3, floorMetalTextures);
+  const floorMainMaterial = createRepeatingMaterial(13.5, 3.2, floorMetalTextures);
   const ironPlateMaterial = createRepeatingMaterial(22, 4, ironPlateTextures, 0.8, -0.4);
   //100-5.6 = 94.4; 5.6 para 0,5 assim como 94.4 para x = 8,43
   //120-15 = 85; 42.5 para 8 assim como 120 para x = 22.59

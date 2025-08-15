@@ -19,10 +19,10 @@ const wallTextures = {
 };
 
 const bricksTexture = {
-  colorMap: textureLoader.load('assets/textures/floor/bricks/PavingStones086_1K-PNG_Color.png'),
-  aoMap: textureLoader.load('assets/textures/floor/bricks/PavingStones086_1K-PNG_AmbientOcclusion.png'),
-  normalMap: textureLoader.load('assets/textures/floor/bricks/PavingStones086_1K-PNG_NormalGL.png'),
-  displacementMap: textureLoader.load('assets/textures/floor/bricks/PavingStones086_1K-PNG_Displacement.png'),
+  colorMap: textureLoader.load('assets/textures/floor/grayBricks/PavingStones081_1K-PNG_Color.png'),
+  aoMap: textureLoader.load('assets/textures/floor/grayBricks/PavingStones081_1K-PNG_AmbientOcclusion.png'),
+  normalMap: textureLoader.load('assets/textures/floor/grayBricks/PavingStones081_1K-PNG_NormalGL.png'),
+  displacementMap: textureLoader.load('assets/textures/floor/grayBricks/PavingStones081_1K-PNG_Displacement.png'),
 };
 
 //Cria o plano geral do jogo
@@ -30,7 +30,7 @@ function createPlane() {
 
   // Aplica textura definida
 
-  const floorMaterial = createRepeatingMaterial(100, 100, bricksTexture);
+  const floorMaterial = createRepeatingMaterial(150, 150, bricksTexture);
 
   let plane = createGroundPlaneXZ(500, 500);
   plane.userData.isPlatform = true;
@@ -81,6 +81,7 @@ export function setupEnvironment(scene, collisionObjects, light) {
 
 //Cria plataforma básica com escada (Areas 3 e 4)
 function buildPlatform(scene, side_size, front_size, height, position, step_size, number_of_steps, step_depth, color) {
+  
   const stair_depth = number_of_steps * step_depth;
   const step_height = height / number_of_steps;
   const depth = step_depth * (number_of_steps);
