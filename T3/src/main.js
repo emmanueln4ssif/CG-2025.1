@@ -9,13 +9,13 @@ import { placeKeyAndUnlockDoor, openDoor, updateDoor, updateElevator, isPlayerOn
 import { sunLight, ambientLight } from './light.js';
 import { createEnemy, updateEnemies, allEnemies, checkDefeatedEnemies } from './enemies/enemies.js';
 import { SpriteMixer } from "../../libs/sprites/SpriteMixer.js";
-
+import {CubeTextureLoaderSingleFile} from "../../libs/util/CubeTextureLoaderSingleFile.js";
 // --- Cena Básica ---
 export let scene = new THREE.Scene()
 let renderer = initRenderer();
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.setClearColor("rgb(8, 79, 150)");
+//renderer.setClearColor("rgb(8, 79, 150)");
 
 // GARANTE QUE TODOS OS OBJETOS USAM SOMBRA
 scene.traverse(obj => {
@@ -24,6 +24,9 @@ scene.traverse(obj => {
       obj.receiveShadow = true;
    }
 });
+
+let cubeMapTexture = new CubeTextureLoaderSingleFile().loadSingle('assets/textures/skybox/sky01.png', 1);
+scene.background = cubeMapTexture;
 
 //Luzes
 scene.add(ambientLight);

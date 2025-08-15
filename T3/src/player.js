@@ -16,7 +16,7 @@ export const player = {
    height: 4,
    radius: 0.5,
    jumpForce: 20,
-   gravity: -20,
+   gravity: -10,
    isOnGround: false,
    canJump: true,
    moveForward: false,

@@ -3,11 +3,11 @@ import { CSG } from '../../libs/other/CSGMesh.js';
 import {scene} from './main.js';
 
 // Luz do ambiente
-export const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+export const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 
 //Luz principal com sombras
 export const sunLight = new THREE.DirectionalLight(0xffffff, 3);
-sunLight.position.set(100, 170, -100);
+sunLight.position.set(-100, 170, -100);
 sunLight.castShadow = true;
 
 
