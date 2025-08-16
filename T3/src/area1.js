@@ -3,7 +3,126 @@ import * as THREE from 'three';
 import { createGroundPlaneXZ } from '../../libs/util/util.js';
 import { buildKey, createPlatformWithKey, updateObject, key, addRectangleWithKey } from './key.js';
 import { controls } from './player.js';
-import { Group } from '../../build/three.module.js';
+import { BufferGeometry, Group } from '../../build/three.module.js';
+import { manager } from './loadingManager.js';
+
+const loader = new THREE.TextureLoader(manager);
+
+export const pillarTextures = {
+    colorMap: loader.load('assets/textures/area1/pillars/color.png'),
+    aoMap: loader.load('assets/textures/area1/pillars/occlusion.png'),
+    displacementMap: loader.load('assets/textures/area1/pillars/displacement.png'),
+    normalMap: loader.load('assets/textures/area1/pillars/normal.png')
+}
+
+export const areaTextures = {
+    colorMap: loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_Color.png'),
+    aoMap: loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_AmbientOcclusion.png'),
+    displacementMap: loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_Displacement.png'),
+    normalMap: loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_NormalGL.png')
+}
+
+export function buildPlatformArea1(scene, side_size, front_size, height, position, step_size, number_of_steps, step_depth, color) {
+
+    const stair_depth = number_of_steps * step_depth;
+    const step_height = height / number_of_steps;
+    const depth = step_depth * (number_of_steps);
+    const platform = new THREE.Group();
+    const escadaGroup = new THREE.Group();
+
+    // Constroi escadas
+    const escadaMaterial = createRepeatingMaterial(8, height / number_of_steps / 2, areaTextures);
+    for (let i = 0; i < number_of_steps; i++) {
+        const degrau = new THREE.Mesh(
+            new THREE.BoxGeometry(step_size, step_height, step_depth),
+            escadaMaterial
+        );
+        degrau.position.set(0, (i + 0.5) * step_height, (i + 0.5) * step_depth);
+        escadaGroup.add(degrau);
+    }
+    escadaGroup.position.set(position.x, 0, position.z - (side_size / 2) + (step_depth / 2));
+
+
+    //Lógica da rampa
+    const boundingBox = new THREE.Box3().setFromObject(escadaGroup);
+    const center = boundingBox.getCenter(new THREE.Vector3());
+
+    const rampLength = Math.sqrt(stair_depth * stair_depth + height * height);
+    const rampAngle = Math.atan(height / stair_depth);
+
+    const ramp = new THREE.Mesh(
+        new THREE.BoxGeometry(step_size, 0.1, rampLength),
+        new THREE.MeshBasicMaterial({ visible: true, transparent: false, opacity: 0.0 })
+    );
+    ramp.rotation.x = -rampAngle;
+    ramp.position.set(center.x, height / 2, center.z - stair_depth / 2 + rampLength / 2.5 * Math.cos(rampAngle) - 0.5 + 0.4);
+    ramp.userData = {
+        isRamp: true,
+        rampLength,
+        rampHeight: height,
+        rampAngle,
+        rampDirection: new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(1, 0, 0), rampAngle)
+    };
+    ramp.visible = false;
+
+
+    //Geometrias da base da área
+    // Crie a geometria normalmente, sem modificar os UVs.
+    const frontalGeometry = new THREE.BoxGeometry((front_size - step_size) / 2, height, depth);
+    const traseiraGeometry = new THREE.BoxGeometry(front_size, height, side_size - stair_depth);
+
+    // Cria os materiais para cada tipo de face, pensando na repetição
+    const sideMaterial = createRepeatingMaterial(1, 0.5, areaTextures);
+    const mainMaterial = createRepeatingMaterial(4, 0.25, areaTextures);
+
+    // Materiais da traseira
+    const backMaterial = createRepeatingMaterial(22.59, 8.43, areaTextures);
+    const sideTraseiraMaterial = createRepeatingMaterial(18, 0.5, areaTextures);
+    const frontTraseiraMaterial = createRepeatingMaterial(22.59, 0.5, areaTextures);
+
+    // Cria um array de materiais na ordem correta do boxgeometry, para cada uma das faces
+    const frontMaterials = [
+        sideMaterial, // dir
+        sideMaterial, // esq 
+        mainMaterial, // cima
+        mainMaterial, // baixo
+        mainMaterial, // frente
+        mainMaterial  // trás
+    ];
+
+    const traseiraMaterials = [
+        sideTraseiraMaterial,
+        sideTraseiraMaterial,
+        backMaterial,
+        backMaterial,
+        frontTraseiraMaterial,
+        frontTraseiraMaterial
+    ];
+
+    // Cria os meshes
+    const frontal1 = new THREE.Mesh(frontalGeometry, frontMaterials);
+    frontal1.position.set(center.x - (front_size - step_size) / 4 - step_size / 2, height / 2, center.z);
+
+    const frontal2 = new THREE.Mesh(frontalGeometry, frontMaterials);
+    frontal2.position.set(center.x + (front_size - step_size) / 4 + step_size / 2, height / 2, center.z);
+
+    const traseira = new THREE.Mesh(traseiraGeometry, traseiraMaterials);
+    traseira.position.set(center.x, height / 2, center.z + (side_size / 2) - (step_depth / 2) + 0.4);
+
+    platform.add(escadaGroup, frontal1, frontal2, traseira, ramp);
+
+    platform.userData.width = front_size;
+    platform.userData.depth = side_size;
+    platform.userData.height = height;
+
+    platform.userData.x = position.x;
+    platform.userData.y = position.y;
+    platform.userData.z = position.z;
+
+    return platform;
+}
+
+
 
 //Adiciona colunas gregas à plataforma
 export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
@@ -11,7 +130,7 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
     //Parâmetros das colunas
     const columnHeight = 15;
     const columnRadius = 1.5;
-    const columnColor = 0xcccccc;
+    const spacing = 12; // Espaçamento entre colunas
 
     //Parâmetros da plataforma
     const width = platformGroup.userData.width;
@@ -22,69 +141,66 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
     const baseX = platformGroup.userData.x;
     const baseY = platformGroup.userData.y + 0.1;
     const baseZ = platformGroup.userData.z;
+    const y = baseY + height;
 
-    //Cria o grupo de colunas
-    const spacing = 12; // Espaçamento entre colunas
-    const material = new THREE.MeshLambertMaterial({
-        color: columnColor,
-        emissive: 0x222222,
-        emissiveIntensity: 0.1
-    });
+    //Materiais necessários
+    const columnMaterial = createRepeatingMaterial(1, 1, pillarTextures);
+    const beamMaterial = createRepeatingMaterial(25, 2, pillarTextures);
+    const topBeamMaterial = createRepeatingMaterial(25, 0.25, pillarTextures);
+    const capitelMaterial = createRepeatingMaterial(1.5, 0.25, pillarTextures);
 
-    //Parte frontal da plataforma
-    const y = baseY + height; // Altura da plataforma
+    // Ajuste de escala do displacement e bias
+    columnMaterial.displacementBias = -0.1;
+    columnMaterial.displacementScale = 0.2;
+    beamMaterial.displacementScale = 0.2;
+    beamMaterial.displacementBias = -0.1;
+    topBeamMaterial.displacementScale = 0.2;
+    topBeamMaterial.displacementBias = -0.1;
+    capitelMaterial.displacementScale = 0.1;
+    capitelMaterial.displacementBias = -0.05;
 
     function createColumn(broken = false) {
 
         const column = new THREE.Group();
 
-        //Fator de escala e ângulo para colunas quebradas
-        // --> Se quebrada, aplica um fator de escala e um ângulo aleatório
-        // --> Se não quebrada, fator de escala é 1 e ângulo é 0
+        // Fator de escala e ângulo para colunas quebradas
         const brokenFactor = broken ? THREE.MathUtils.randFloat(0.3, 0.6) : 1.0;
         const brokenAngle = broken ? THREE.MathUtils.degToRad(THREE.MathUtils.randFloat(-15, 15)) : 0;
 
-        //Cria o cilindro da coluna
+        // Geometria
         const shaftHeight = columnHeight * brokenFactor;
-        const shaft = new THREE.Mesh(
-            new THREE.CylinderGeometry(columnRadius, columnRadius, shaftHeight, 16),
-            material
-        );
+        const shaftGeometry = new THREE.CylinderGeometry(columnRadius, columnRadius, shaftHeight, 16, 64);
+        const shaft = new THREE.Mesh(shaftGeometry, columnMaterial);
         shaft.castShadow = true;
         shaft.receiveShadow = true;
         shaft.position.y = shaftHeight / 2;
         column.add(shaft);
 
-        //Cria o capitel da coluna
+        // Capitel
         if (!broken || Math.random() > 0.5) {
-            const top = new THREE.Mesh(
-                new THREE.CylinderGeometry(columnRadius * 1.3, columnRadius * 1.3, 1.5, 16),
-                material
-            );
-            top.position.y = shaftHeight + 0.75;
+            const overlap = 0.4;
+            const topGeometry = new THREE.CylinderGeometry(columnRadius * 1.3, columnRadius * 1.3, 1.5, 16, 4);
+            const top = new THREE.Mesh(topGeometry, capitelMaterial);
+            top.position.y = shaftHeight + 0.75 - overlap;
             column.add(top);
         }
 
-        //Cria a base da coluna
+        // Base 
         if (!broken || Math.random() > 0.3) {
-            const base = new THREE.Mesh(
-                new THREE.CylinderGeometry(columnRadius * 1.3, columnRadius * 1.3, 1.5, 8),
-                material
-            );
-            base.position.y = 0 - 0.75;
+            const overlap = 0.4;
+            const baseGeometry = new THREE.CylinderGeometry(columnRadius * 1.3, columnRadius * 1.3, 1.5, 8, 4);
+            const base = new THREE.Mesh(baseGeometry, capitelMaterial);
+            base.position.y = -0.75 + overlap;
             column.add(base);
         }
 
-        //Inclinar um pouco se for quebrada
+        // Inclinar um pouco se for quebrada
         if (broken) {
             column.rotation.x = brokenAngle * Math.random();
             column.rotation.z = brokenAngle * Math.random();
         }
 
-        column.castShadow = true; // Habilita sombras
-        column.receiveShadow = true; // Habilita recebimento de sombras
         return column;
-
     }
 
     const numFrontColumnsTotal = 10;
@@ -126,33 +242,26 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
         col.position.set(x, y + 1, backZ);
         platformGroup.add(col);
         columns.push(col);
-        xEnd = x; // atualiza xEnd para o último valor
+        xEnd = x;
     }
 
-    //Adiciona a viga horizontal conectando as colunas
+    //Adiciona as vigas horizontais conectando as colunas
+    //Viga menor
     const beamLength = xEnd - xStart + 8;
     const beamHeight = 0.5;
     const beamDepth = 4;
-
     const beamGeometry = new THREE.BoxGeometry(beamLength, beamHeight, beamDepth);
-    const beamMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
     const beam = new THREE.Mesh(beamGeometry, beamMaterial);
-
-    //Posiciona a viga no meio entre primeira e última coluna e no topo das colunas
-    beam.position.set((xStart + xEnd) / 2, y + columnHeight + 2, backZ); // ajuste Y conforme altura da coluna
+    beam.position.set((xStart + xEnd) / 2, y + columnHeight + 2, backZ);
     platformGroup.add(beam);
 
-    //Adiciona a viga horizontal conectando as colunas
+    //Viga maior
     const topBeamLength = xEnd - xStart + 12;
     const topBeamHeight = 0.8;
     const topBeamDepth = 4;
-
     const topBeamGeometry = new THREE.BoxGeometry(topBeamLength, topBeamHeight, topBeamDepth);
-    const topBeamMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
     const topBeam = new THREE.Mesh(topBeamGeometry, topBeamMaterial);
-
-    //Posiciona a viga no meio entre primeira e última coluna e no topo das colunas
-    topBeam.position.set((xStart + xEnd) / 2, y + columnHeight + 3, backZ); // ajuste Y conforme altura da coluna
+    topBeam.position.set((xStart + xEnd) / 2, y + columnHeight + 3, backZ);
     platformGroup.add(topBeam);
 
 
@@ -187,14 +296,25 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
 
 // Cria colunas gregas na frente da plataforma
 export function createGreekFrontColumns(scene, position, scale, collisionObjects) {
-    const group = new THREE.Group();
-    const material = new THREE.MeshLambertMaterial({ color: 0xaaaaaa, emissive: 0x222222, emissiveIntensity: 0.1 });
-    const rubyshMaterial = new THREE.MeshLambertMaterial({ color: 0x444444, emissive: 0x222222, emissiveIntensity: 0.1}); //cinza escuro
-    const goldMaterial = new THREE.MeshLambertMaterial({ color: 0x888888, emissive: 0x222222, emissiveIntensity: 0.1 }); //cinza mais escuro
 
+    const group = new THREE.Group();
     const columnHeight = 40 * scale;
     const columnRadius = 4 * scale;
     const spacing = 30 * scale;
+
+    //Criar texturas
+
+    const columnMaterial = createRepeatingMaterial(1, 2, pillarTextures);
+    const topBeamMaterial = createRepeatingMaterial(6, 0.25, pillarTextures);
+    const roofMaterial = createRepeatingMaterial(3, 0.25, pillarTextures);
+
+    //Ajuste de escala e bias do displacement
+    columnMaterial.displacementScale = 0.2;
+    columnMaterial.displacementBias = -0.1;
+    topBeamMaterial.displacementScale = 0.2;
+    topBeamMaterial.displacementBias = -0.1;
+    roofMaterial.displacementScale = 0.2;
+    roofMaterial.displacementBias = -0.1;
 
     //Cria uma coluna  simples
     function createColumn(xOffset) {
@@ -203,7 +323,7 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
 
         const shaft = new THREE.Mesh(
             new THREE.CylinderGeometry(columnRadius, columnRadius, columnHeight, 8),
-            material
+            columnMaterial
         );
 
         shaft.position.y = columnHeight / 2;
@@ -211,7 +331,7 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
 
         const capital = new THREE.Mesh(
             new THREE.CylinderGeometry(columnRadius * 1.5, columnRadius * 1.5, 2 * scale, 16),
-            material
+            topBeamMaterial
         );
 
         capital.position.y = columnHeight + 1 * scale;
@@ -238,7 +358,7 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
     //Viga horizontal
     const beam = new THREE.Mesh(
         new THREE.BoxGeometry(spacing * 2 + columnRadius * 2, 2 * scale, 4 * scale),
-        rubyshMaterial
+        topBeamMaterial
     );
     beam.position.y = columnHeight + 2.5 * scale;
     beam.castShadow = true;
@@ -248,7 +368,7 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
     //viga vertical no meio da viga horizontal
     const verticalBeam = new THREE.Mesh(
         new THREE.BoxGeometry(2 * scale, 3, 4 * scale),
-        rubyshMaterial
+        columnMaterial
     );
     verticalBeam.castShadow = true;
     verticalBeam.receiveShadow = true;
@@ -258,7 +378,7 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
     //Frontão 
     const roof = new THREE.Mesh(
         new THREE.ConeGeometry(spacing * scale, 5 * scale, 5),
-        goldMaterial
+        roofMaterial
     );
 
     //deixar em pé
@@ -280,4 +400,27 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
         }
     });
 
+}
+
+// Função para definir o quanto um material se repete:
+function createRepeatingMaterial(repeatX, repeatY, maps, displacement, displacementBias) {
+    // Função auxiliar para clonar e configurar cada textura
+    const setupTexture = (map) => {
+        if (!map) return null;
+        const texture = map.clone();
+        //texture.needsUpdate = true;
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(repeatX, repeatY);
+        return texture;
+    };
+
+    return new THREE.MeshLambertMaterial({
+        map: setupTexture(maps.colorMap),
+        aoMap: setupTexture(maps.aoMap),
+        displacementMap: setupTexture(maps.displacementMap),
+        displacementScale: 0,
+        displacementBias: 0,
+        normalMap: setupTexture(maps.normalMap),
+    });
 }

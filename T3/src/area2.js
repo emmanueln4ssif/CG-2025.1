@@ -4,6 +4,7 @@ import { createGroundPlaneXZ } from '../../libs/util/util.js';
 import { buildKey, createPlatformWithKey, updateObject, key, addRectangleWithKey } from './key.js';
 import { controls } from './player.js';
 import { Group } from '../../build/three.module.js';
+import { manager } from './loadingManager.js';
 
 // Sons
 const doorSound = new Audio('../0_assetsT3/sounds/doorOpening.wav');
@@ -32,6 +33,56 @@ let keyFadeSpeed = 0.02;
 
 let lastElevatorUse = 0;
 const elevatorCooldown = 5000;
+const loader = new THREE.TextureLoader(manager);
+
+//TEXTURAS DE METAL:
+const metalTextures = {
+  colorMap: loader.load('assets/textures/area2/metal/MetalPlates001_1K-PNG_Color.png'),
+  metalnessMap: loader.load('assets/textures/area2/metal/MetalPlates001_1K-PNG_Metalness.png'),
+  displacementMap: loader.load('assets/textures/area2/metal/MetalPlates001_1K-PNG_Displacement.png'),
+  normalMap: loader.load('assets/textures/area2/metal/MetalPlates001_1K-PNG_NormalGL.png')
+};
+
+const floorMetalTextures = {
+  colorMap: loader.load('assets/textures/area2/floor/floor_Color.png'),
+  metalnessMap: loader.load('assets/textures/area2/floor/floor_Metalness.png'),
+  displacementMap: loader.load('assets/textures/area2/floor/floor_Displacement.png'),
+  normalMap: loader.load('assets/textures/area2/floor/floor_NormalGL.png')
+};
+
+const fenceMetalTextures = {
+  colorMap: loader.load('assets/textures/area2/fence/MetalWalkway005_1K-PNG_Color.png'),
+  displacementMap: loader.load('assets/textures/area2/fence/MetalWalkway005_1K-PNG_Displacement.png'),
+  normalMap: loader.load('assets/textures/area2/fence/MetalWalkway005_1K-PNG_NormalGL.png'),
+  alphaMap: loader.load('assets/textures/area2/fence/MetalWalkway005_1K-PNG_Opacity.png')
+};
+
+const elevatorBaseTextures = {
+  colorMap: loader.load('assets/textures/area2/elevator/MetalPlates005_1K-PNG_Color.png'),
+  metalnessMap: loader.load('assets/textures/area2/elevator/MetalPlates005_1K-PNG_Metalness.png'),
+  displacementMap: loader.load('assets/textures/area2/elevator/MetalPlates005_1K-PNG_Displacement.png'),
+  normalMap: loader.load('assets/textures/area2/elevator/MetalPlates005_1K-PNG_NormalGL.png')
+};
+
+const blockTextures = {
+  colorMap: loader.load('assets/textures/area2/elevatorBase/Metal056C_1K-PNG_Color.png'),
+  metalnessMap: loader.load('assets/textures/area2/elevatorBase/Metal056C_1K-PNG_Metalness.png'),
+  displacementMap: loader.load('assets/textures/area2/elevatorBase/Metal056C_1K-PNG_Displacement.png'),
+  normalMap: loader.load('assets/textures/area2/elevatorBase/Metal056C_1K-PNG_NormalGL.png')
+};
+
+const caixa = {
+  colorMap: loader.load('assets/textures/area2/box/box.jpg'),
+  displacementMap: loader.load('assets/textures/area2/box/box_displacement.png'),
+  normalMap: loader.load('assets/textures/area2/box/box_normal.png'),
+  specularMap: loader.load('assets/textures/area2/box/box_specular.png')
+}
+
+const ironPlateTextures = {
+  colorMap: loader.load('assets/textures/area2/iron_plate/iron_plate.jpg'),
+  displacementMap: loader.load('assets/textures/area2/iron_plate/iron_plate_displacement.png'),
+  normalMap: loader.load('assets/textures/area2/iron_plate/iron_plate_normal.png')
+};
 
 // AREA 2 ---------------------------------------------------------------------------
 // Esta seção contém funções relacionadas à Área 2, incluindo a criação da plataforma com elevador
@@ -46,46 +97,86 @@ export function buildPlatformWithElevator(scene, sideSize, frontSize, height, po
   const elevator = new THREE.Group();
   elevator.position.set(0, 0, -sideSize / 2 + elevatorDepth / 2);
 
+  const elevatorMaterial = createRepeatingMaterial(1, 1, elevatorBaseTextures);
+
   //Base do elevador (chão)
   const elevatorBase = new THREE.Mesh(
-    new THREE.BoxGeometry(elevatorLength, height, elevatorDepth - 0.1),
-    new THREE.MeshLambertMaterial({ color: 0x2F4F4F })
+    new THREE.BoxGeometry(elevatorLength, height, elevatorDepth - 2),
+    elevatorMaterial
   );
   elevatorBase.name = "elevatorBase";
   elevatorState.base = elevatorBase;
-  elevatorBase.position.set(0, height / 2, 0);
+  elevatorBase.position.set(0, height / 2, 1);
   elevator.add(elevatorBase);
 
   //Porta do elevador
   const elevatorDoor = createElevatorDoor(0, height / 2, -elevatorDepth / 2 + 0.1, elevatorLength, height, 0.2);
   elevator.add(elevatorDoor);
 
+  //Geometrias da base da área
+  // Cria os materiais para cada tipo de face, pensando na repetição
+  const sideMaterial = createRepeatingMetalMaterial(1, 1, metalTextures);
+  const mainMaterial = createRepeatingMetalMaterial(4, 1, metalTextures);
+
+  // Materiais da traseira
+  const backMaterial = createRepeatingMetalMaterial(4, 1, metalTextures);
+  const sideTraseiraMaterial = createRepeatingMetalMaterial(9, 1, metalTextures);
+  const frontTraseiraMaterial = createRepeatingMetalMaterial(12, 1, metalTextures);
+  const floorTraseiraMaterial = createRepeatingMaterial(32.59, 20, floorMetalTextures);
+  const floorMainMaterial = createRepeatingMaterial(13.5, 3.2, floorMetalTextures);
+  const ironPlateMaterial = createRepeatingMaterial(22, 4, ironPlateTextures, 0.8, -0.4);
+  //100-5.6 = 94.4; 5.6 para 0,5 assim como 94.4 para x = 8,43
+  //120-15 = 85; 42.5 para 8 assim como 120 para x = 22.59
+
+  // Cria um array de materiais na ordem correta do boxgeometry, para cada uma das faces
+  const frontMaterials = [
+    sideMaterial, // dir
+    sideMaterial, // esq 
+    floorMainMaterial, // cima
+    mainMaterial, // baixo
+    ironPlateMaterial, // trás
+    ironPlateMaterial  // frente
+  ];
+
+  const traseiraMaterials = [
+    sideTraseiraMaterial,
+    sideTraseiraMaterial,
+    floorTraseiraMaterial,
+    floorTraseiraMaterial,
+    frontTraseiraMaterial,
+    frontTraseiraMaterial
+  ];
+  
+
   const frontalWidth = (frontSize - elevatorLength) / 2;
 
   //Frontais esquerda e direita
   const frontal1 = new THREE.Mesh(
     new THREE.BoxGeometry(frontalWidth, height, elevatorDepth),
-    new THREE.MeshLambertMaterial({ color: color })
+    frontMaterials
   );
   frontal1.position.set(- (elevatorLength / 2 + frontalWidth / 2), height / 2, elevator.position.z);
 
   const frontal2 = new THREE.Mesh(
     new THREE.BoxGeometry(frontalWidth, height, elevatorDepth),
-    new THREE.MeshLambertMaterial({ color: color })
+    frontMaterials
   );
   frontal2.position.set(elevatorLength / 2 + frontalWidth / 2, height / 2, elevator.position.z);
 
   //Traseira
   const traseira = new THREE.Mesh(
     new THREE.BoxGeometry(frontSize, height, sideSize - elevatorDepth),
-    new THREE.MeshLambertMaterial({ color: color })
+    traseiraMaterials
   );
   traseira.position.set(0, height / 2, sideSize / 2 - (sideSize - elevatorDepth) / 2);
 
   //Grupo
   platform.add(elevator, frontal1, frontal2, traseira);
   platform.position.set(position.x, position.y, position.z);
+  platform.receiveShadow = true;
+  platform.castShadow = true;
   scene.add(platform);
+
 
   //Adiciona os retângulos de diferentes alturas
   addMultipleRectangles(platform, sideSize, frontSize, height);
@@ -116,18 +207,19 @@ function createKeySupport(position) {
   const group = new THREE.Group();
 
   // Material padrão
-  const material = new THREE.MeshLambertMaterial({ color: 0x4B3621 });
+  const texture = createRepeatingMaterial(1, 3, caixa, -0.15, -0.1);
+  const downTexture = createRepeatingMaterial(1, 1, caixa, -0.15, -0.1);
 
   // Bloco superior (tampa)
   const topGeometry = new THREE.BoxGeometry(5, 14, 5);
-  const top = new THREE.Mesh(topGeometry, material);
+  const top = new THREE.Mesh(topGeometry, texture);
   top.name = "topBlock";
   top.position.y = 9.5;
   group.add(top);
 
   // Bloco inferior (base de apoio)
   const bottomGeometry = new THREE.BoxGeometry(5, 4, 5);
-  const bottom = new THREE.Mesh(bottomGeometry, material);
+  const bottom = new THREE.Mesh(bottomGeometry, downTexture);
   bottom.name = "bottomBlock";
   bottom.position.y = -4;
   group.add(bottom);
@@ -150,6 +242,10 @@ export function createElevatorDoor(x, y, z, doorWidth, doorHeight, doorDepth) {
 
   const ripaWidth = 1;
   const numRipas = Math.floor(doorWidth / ripaWidth);
+  const material = createRepeatingMaterial(0.2, 1, fenceMetalTextures);
+  const materialBlock = createRepeatingMaterial(0.25, 0.1, blockTextures, 0, 0)
+  material.transparent = true;
+  material.opacity = 0.8;
 
   const colors = [0x8B4513, 0xA0522D];
 
@@ -158,11 +254,11 @@ export function createElevatorDoor(x, y, z, doorWidth, doorHeight, doorDepth) {
 
     const ripa = new THREE.Mesh(
       new THREE.BoxGeometry(ripaWidth, doorHeight, doorDepth),
-      new THREE.MeshLambertMaterial({ color })
+      material
     );
 
     const offsetX = -doorWidth / 2 + ripaWidth / 2 + i * ripaWidth;
-    ripa.position.set(offsetX, doorHeight / 2, 0);
+    ripa.position.set(offsetX, doorHeight / 2);
 
     doorGroup.add(ripa);
   }
@@ -170,7 +266,8 @@ export function createElevatorDoor(x, y, z, doorWidth, doorHeight, doorDepth) {
   //bloco que vai ficar com a chave
   const activationBlock = new THREE.Mesh(
     new THREE.BoxGeometry(3, 0.5, 2),
-    new THREE.MeshLambertMaterial({ color: 0x4B3621 })
+    materialBlock
+    
   );
   activationBlock.position.set(doorGroup.position.x, 1, doorGroup.position.z - 0.5);
   doorGroup.add(activationBlock);
@@ -199,7 +296,7 @@ export function placeKeyAndUnlockDoor(scene, controls) {
     const platformWithKey = scene.getObjectByName("platformWithKeyColorRed");
 
     const distanceToDoor = controls.getObject().position.distanceTo(blockPosition);
-    
+
     // Se o jogador estiver próximo o suficiente da porta, ativa a chave
     if (distanceToDoor < 5) {
       key.visible = true;
@@ -231,7 +328,7 @@ export function openDoor(scene) {
   let doorOpenDistance = doorGroup.parent.parent.userData.elevatorLength;
 
   doorStartPosition.copy(doorGroup.position);
-  doorTargetPosition.set(doorGroup.position.x - doorOpenDistance, doorGroup.position.y, doorGroup.position.z - 0.25);
+  doorTargetPosition.set(doorGroup.position.x - doorOpenDistance, doorGroup.position.y, doorGroup.position.z - 1);
 
 }
 
@@ -337,10 +434,17 @@ export function canUseElevator() {
 // Esta função é usada para criar retângulos que podem ser usados como plataformas ou obstáculos na Area 2
 export function addRectangle(width, height, depth, position, color) {
 
+  //const rectangleMaterial = createRepeatingMaterial(3/6, height/6, caixa);
+  const texture = createRepeatingMaterial(width/4, height/4, caixa, -0.15, -0.1);
+  texture.normalScale.set(0.1, 0.1);
+  const geometry = new THREE.BoxGeometry(width, height, depth);
+  geometry.attributes.uv2 = geometry.attributes.uv;
+
   const rectangle = new THREE.Mesh(
-    new THREE.BoxGeometry(width, height, depth),
-    new THREE.MeshLambertMaterial({ color: color })
+    geometry,
+    texture
   );
+
   rectangle.position.set(position.x, position.y, position.z);
   rectangle.castShadow = true;
   rectangle.receiveShadow = true;
@@ -367,7 +471,7 @@ function addMultipleRectangles(platform, sideSize, frontSize, height) {
   platform.add(addRectangle(4, 14, 4, { x: (-frontSize / 2 + 5) + 47, y: height + 7, z: (-sideSize / 2 + 5) }, 0x4B3621));
   platform.add(addRectangle(4, 10, 4, { x: (-frontSize / 2 + 5) + 33, y: height + 5, z: (-sideSize / 2 + 5) }, 0x4B3621));
 
-  platform.add(addRectangle(4, 10, 4, { x: (-frontSize / 2 + 5) + 6, y: height + 5, z: (-sideSize / 2 + 5) + 38 }, 0x4B3621));
+  platform.add(addRectangle(4, 10, 4, { x: (-frontSize / 2 + 5) + 1, y: height + 5, z: (-sideSize / 2 + 5) + 22 }, 0x4B3621));
   platform.add(addRectangle(4, 20, 4, { x: (-frontSize / 2 + 5) + 10, y: height + 10, z: (-sideSize / 2 + 5) + 55 }, 0x4B3621));
   platform.add(addRectangle(4, 16, 4, { x: (-frontSize / 2 + 5) + 5, y: height + 8, z: (-sideSize / 2 + 5) + 68 }, 0x4B3621));
   platform.add(addRectangle(4, 18, 4, { x: (-frontSize / 2 + 5) + 18, y: height + 9, z: (-sideSize / 2 + 9) + 85 }, 0x4B3621));
@@ -391,8 +495,8 @@ function addMultipleRectangles(platform, sideSize, frontSize, height) {
   platform.add(addRectangle(4, 10, 4, { x: -((-frontSize / 2 + 5) + 47), y: height + 5, z: (-sideSize / 2 + 5) }, 0x4B3621));
   platform.add(addRectangle(4, 10, 4, { x: -((-frontSize / 2 + 5) + 33), y: height + 5, z: (-sideSize / 2 + 5) }, 0x4B3621));
 
-  platform.add(addRectangle(4, 10, 4, { x: -((-frontSize / 2 + 5) + 6), y: height + 5, z: ((-sideSize / 2 + 5) + 38) }, 0x4B3621));
-  platform.add(addRectangle(4, 20, 4, { x: -((-frontSize / 2 + 5) + 10), y: height + 10, z: (-sideSize / 2 + 5) + 55 }, 0x4B3621));
+  platform.add(addRectangle(4, 10, 4, { x: -((-frontSize / 2 + 5)), y: height + 5, z: ((-sideSize / 2 + 5) + 20) }, 0x4B3621));
+  platform.add(addRectangle(4, 20, 4, { x: -((-frontSize / 2 + 5) + 10), y: height + 10, z: (-sideSize / 2 + 5) + 45 }, 0x4B3621));
   platform.add(addRectangle(4, 16, 4, { x: -((-frontSize / 2 + 5) + 5), y: height + 8, z: (-sideSize / 2 + 5) + 68 }, 0x4B3621));
   platform.add(addRectangle(4, 18, 4, { x: -((-frontSize / 2 + 5) + 18), y: height + 9, z: (-sideSize / 2 + 9) + 85 }, 0x4B3621));
   platform.add(addRectangle(4, 18, 4, { x: -((-frontSize / 2 + 5) + 40), y: height + 9, z: (-sideSize / 2 + 9) + 75 }, 0x4B3621));
@@ -405,4 +509,54 @@ function addMultipleRectangles(platform, sideSize, frontSize, height) {
   platform.add(addRectangle(4, 22, 4, { x: -(-frontSize / 2 + 5), y: height + 11, z: (-sideSize / 2 + 9) + 88 }, 0x4B3621));
   platform.add(addRectangle(4, 14, 4, { x: -(-frontSize / 2 + 5), y: height + 7, z: (-sideSize / 2 + 9) + 70 }, 0x4B3621));
 
+}
+
+// Função para definir o quanto um material se repete:
+export function createRepeatingMaterial(repeatX, repeatY, maps, displacement, displacementBias) {
+  const setupTexture = (map) => {
+    if (!map) return null;
+    const texture = map.clone();
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeatX, repeatY);
+    return texture;
+  };
+
+  return new THREE.MeshLambertMaterial({
+    map: setupTexture(maps.colorMap),
+    aoMap: setupTexture(maps.aoMap),
+    displacementMap: setupTexture(maps.displacementMap),
+    displacementScale: displacement || 0.3,
+    displacementBias: displacementBias || -0.15,
+    normalMap: setupTexture(maps.normalMap),
+    alphaMap: setupTexture(maps.alphaMap),
+    specularMap: setupTexture(maps.specularMap),
+    reflectivity: 0.5
+  });
+}
+
+// Função para definir o quanto um material se repete:
+function createRepeatingMetalMaterial(repeatX, repeatY, maps) {
+
+  const setupTexture = (map) => {
+    if (!map) return null;
+    const texture = map.clone();
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeatX, repeatY);
+    return texture;
+  };
+
+  return new THREE.MeshStandardMaterial({
+    map: setupTexture(maps.colorMap),
+    aoMap: setupTexture(maps.aoMap),
+    displacementMap: setupTexture(maps.displacementMap),
+    displacementScale: 0.8,
+    displacementBias: -0.15,
+    normalMap: setupTexture(maps.normalMap),
+    metalnessMap: setupTexture(maps.metalnessMap),
+    roughnessMap: setupTexture(maps.roughnessMap),
+    metalness: 0.7,
+    roughness: 0.05
+  });
 }

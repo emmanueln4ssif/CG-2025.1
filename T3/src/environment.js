@@ -4,36 +4,63 @@ import { createGroundPlaneXZ } from '../../libs/util/util.js';
 import { buildKey, createPlatformWithKey, updateObject, key, addRectangleWithKey } from './key.js';
 import { controls } from './player.js';
 import { Group } from '../../build/three.module.js';
-import { addGreekColumnsToPlatform, createGreekFrontColumns } from './area1.js';
-import { buildPlatformWithElevator } from './area2.js';
-import { buildHangarPlatform } from './area3.js';
+import { addGreekColumnsToPlatform, createGreekFrontColumns, buildPlatformArea1, pillarTextures } from './area1.js';
+import { buildPlatformWithElevator, createRepeatingMaterial } from './area2.js';
+import { manager } from './loadingManager.js';import { buildHangarPlatform } from './area3.js';
 
 
 export let elevatorBase, yellowKey, rectangleWithYellowKey, area2;
 
+const textureLoader = new THREE.TextureLoader(manager);
+const wallTextures = {
+  colorMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_Color.png'),
+  aoMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_AmbientOcclusion.png'),
+  normalMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_NormalGL.png'),
+  displacementMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_Displacement.png'),
+};
 
-export function setupEnvironment(scene, collisionObjects, light) {
-  // Plano do chão
+const bricksTexture = {
+  colorMap: textureLoader.load('assets/textures/floor/grayBricks/PavingStones081_1K-PNG_Color.png'),
+  aoMap: textureLoader.load('assets/textures/floor/grayBricks/PavingStones081_1K-PNG_AmbientOcclusion.png'),
+  normalMap: textureLoader.load('assets/textures/floor/grayBricks/PavingStones081_1K-PNG_NormalGL.png'),
+  displacementMap: textureLoader.load('assets/textures/floor/grayBricks/PavingStones081_1K-PNG_Displacement.png'),
+};
+
+//Cria o plano geral do jogo
+function createPlane() {
+
+  // Aplica textura definida
+
+  const floorMaterial = createRepeatingMaterial(150, 150, bricksTexture);
+
   let plane = createGroundPlaneXZ(500, 500);
   plane.userData.isPlatform = true;
-  plane.material.color.set(0xFFF1A9);
-  plane.receiveShadow = true; // Habilita recebimento de sombras
+  plane.material = floorMaterial;
+  plane.receiveShadow = true;
+
+  return plane;
+}
+
+export function setupEnvironment(scene, collisionObjects, light) {
+  
+  // Gera o plano
+  const plane = createPlane();
   scene.add(light);
   scene.add(plane);
   collisionObjects.push(plane);
 
   // Adiciona plataformas
   // Área 1: Plataforma com escada e colunas gregas
-  const area1 = buildPlatform(scene, 100, 120, 4, { x: 160, y: 0, z: 150 }, 15, 8, 0.8, 0x383838);
+  const area1 = buildPlatformArea1(scene, 100, 120, 4, { x: 160, y: 0.1, z: 150 }, 15, 8, 0.8, 0x383838);
   addPlatformToScene(scene, area1, collisionObjects);
   addGreekColumnsToPlatform(area1, collisionObjects);
   createGreekFrontColumns(scene, { x: 160, y: 4, z: 107 }, 0.45, collisionObjects);
-  createPlatformWithKey(scene, area1, 1, 0xE2725B, "Red", collisionObjects); // Cria plataforma com chave vermelha
+  createPlatformWithKey(scene, area1, 1, 0xE2725B, "Red", collisionObjects, pillarTextures); // Cria plataforma com chave vermelha
 
   // Area 2: Plataforma com porta e parte elevatória
-  yellowKey = buildKey({ x: 0, y: 0, z: 0}, scene, "Yellow", "0xffd700", 80, collisionObjects); // Cria a chave amarela
+  yellowKey = buildKey({ x: 0, y: 0, z: 0 }, scene, "Yellow", "0xffd700", 80, collisionObjects); // Cria a chave amarela
   yellowKey.name = "yellowKey";
-  
+
   area2 = buildPlatformWithElevator(scene, 100, 120, 8, { x: 5, y: -0.1, z: 150 }, 10, 10, 0x654321, yellowKey); // Cria plataforma com elevador e plataforma chave amarela
   area2.name = "area2";
   addPlatformToScene(scene, area2, collisionObjects);
@@ -53,8 +80,9 @@ export function setupEnvironment(scene, collisionObjects, light) {
 
 }
 
-//Cria plataforma básica com escada (Areas 1, 3 e 4)
+//Cria plataforma básica com escada (Areas 3 e 4)
 function buildPlatform(scene, side_size, front_size, height, position, step_size, number_of_steps, step_depth, color) {
+  
   const stair_depth = number_of_steps * step_depth;
   const step_height = height / number_of_steps;
   const depth = step_depth * (number_of_steps);
@@ -137,21 +165,28 @@ function addPlatformToScene(scene, platform, collisionObjects) {
 
 // Adiciona paredes ao redor do plano
 function addWallsAroundPlane(scene, collisionObjects, plane_size, wall_height, wall_thickness, color) {
-    const half = plane_size / 2;
-    const walls = [
-        { size: [plane_size + 10, wall_height, wall_thickness], pos: [0, wall_height / 2, half + wall_thickness / 2] },
-        { size: [plane_size + 10, wall_height, wall_thickness], pos: [0, wall_height / 2, -half - wall_thickness / 2] },
-        { size: [wall_thickness, wall_height, plane_size], pos: [-half - wall_thickness / 2, wall_height / 2, 0] },
-        { size: [wall_thickness, wall_height, plane_size], pos: [half + wall_thickness / 2, wall_height / 2, 0] }
-    ];
 
-    walls.forEach(wall => {
-        const wallMesh = new THREE.Mesh(
-            new THREE.BoxGeometry(...wall.size),
-            new THREE.MeshLambertMaterial({ color: color })
-        );
-        wallMesh.position.set(...wall.pos);
-        scene.add(wallMesh);
-        collisionObjects.push(wallMesh);
-    });
+  const floorMaterial = createRepeatingMaterial(50, 2, wallTextures);
+  floorMaterial.displacementScale = 0.2;
+  floorMaterial.displacementBias = -0.1;
+
+  const half = plane_size / 2;
+  const walls = [
+    { size: [plane_size + 10, wall_height, wall_thickness], pos: [0, wall_height / 2 - 1, half + wall_thickness / 2] },
+    { size: [plane_size + 10, wall_height, wall_thickness], pos: [0, wall_height / 2 - 1, -half - wall_thickness / 2] },
+    { size: [wall_thickness, wall_height, plane_size], pos: [-half - wall_thickness / 2, wall_height / 2 - 1, 0] },
+    { size: [wall_thickness, wall_height, plane_size], pos: [half + wall_thickness / 2, wall_height / 2 - 1, 0] }
+  ];
+
+  walls.forEach(wall => {
+    const wallMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(...wall.size),
+      floorMaterial
+    );
+    wallMesh.position.set(...wall.pos);
+    scene.add(wallMesh);
+    collisionObjects.push(wallMesh);
+  });
 }
+
+

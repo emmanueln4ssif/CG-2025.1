@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import {SpriteMixer} from "../../libs/sprites/SpriteMixer.js"; 
+import { SpriteMixer } from "../../libs/sprites/SpriteMixer.js";
+import { manager } from './loadingManager.js';
 
 const bullets = [];
 let isShooting = false;
@@ -12,12 +13,16 @@ let chaingunSprite, shootAction;
 let weapons = {};
 let currentWeapon = 'launcher';
 
+const hud = new THREE.Group();
+hud.renderOrder = 999;
+hud.frustumCulled = false;
+
 const soundLoader = new THREE.AudioLoader();
 let chaingunSound, launcherSound;
 
 function setupGun(camera) {
    const gunGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 32);
-   const gunMaterial =  new THREE.MeshLambertMaterial({color: 0x555555});
+   const gunMaterial = new THREE.MeshLambertMaterial({ color: 0x555555 });
    gun = new THREE.Mesh(gunGeometry, gunMaterial);
    gun.castShadow = true;
    gun.receiveShadow = true;
@@ -26,7 +31,7 @@ function setupGun(camera) {
    gun.rotation.set(Math.PI / 2, 0, 0);
    camera.add(gun);
 
-   weapons.launcher = gun; 
+   weapons.launcher = gun;
 }
 
 function updateFireRate() {
@@ -38,21 +43,20 @@ function updateFireRate() {
 }
 
 function setupChaingun(camera, spriteMixer) {
-   const loader = new THREE.TextureLoader();
+   const loader = new THREE.TextureLoader(manager);
    loader.load('assets/chaingun.png', (texture) => {
-      texture.minFilter = THREE.NearestFilter; 
+      texture.minFilter = THREE.NearestFilter;
       texture.magFilter = THREE.NearestFilter;
-      
+
       chaingunSprite = spriteMixer.ActionSprite(texture, 3, 1);
       chaingunSprite.scale.set(1.5, 0.9, 1);
       chaingunSprite.position.set(0, -1.3, -3.5);
       chaingunSprite.renderOrder = 999;
       chaingunSprite.material.depthTest = false;
+ 
+      shootAction = spriteMixer.Action(chaingunSprite, 100, 0, 1, 0, 2);
+      chaingunSprite.setFrame(0, 0);
 
-      shootAction = spriteMixer.Action(chaingunSprite, 1, 2, 100); 
-      chaingunSprite.setFrame(0);
-
-      const hud = new THREE.Object3D();
       camera.add(hud);
       hud.add(chaingunSprite);
 
@@ -66,7 +70,7 @@ function switchWeapon(to) {
    if (chaingunSprite) {
       chaingunSprite.visible = false;
       if (shootAction) shootAction.stop();
-      chaingunSprite.setFrame(0);
+      chaingunSprite.setFrame(0, 0);
    }
 
    currentWeapon = to;
@@ -76,7 +80,7 @@ function switchWeapon(to) {
       gun.visible = true;
    } else if (to === 'chaingun' && chaingunSprite) {
       chaingunSprite.visible = true;
-      chaingunSprite.setFrame(0);
+      chaingunSprite.setFrame(0, 0);
    }
 }
 
@@ -96,28 +100,28 @@ function setupCrosshair() {
 }
 
 function performRaycastDamage(camera, collisionObjects) {
-    const raycaster = new THREE.Raycaster();
-    const direction = new THREE.Vector3();
-    camera.getWorldDirection(direction);
-    raycaster.set(camera.position, direction);
+   const raycaster = new THREE.Raycaster();
+   const direction = new THREE.Vector3();
+   camera.getWorldDirection(direction);
+   raycaster.set(camera.position, direction);
 
-    const intersects = raycaster.intersectObjects(collisionObjects, true); // <-- true para pegar os filhos também
-    if (intersects.length > 0) {
-        let hitObject = intersects[0].object;
+   const intersects = raycaster.intersectObjects(collisionObjects, true); // <-- true para pegar os filhos também
+   if (intersects.length > 0) {
+      let hitObject = intersects[0].object;
 
-        // Sobe na hierarquia até achar o userData.enemyInstance
-        while (hitObject && !hitObject.userData.enemyInstance && hitObject.parent) {
-            hitObject = hitObject.parent;
-        }
+      // Sobe na hierarquia até achar o userData.enemyInstance
+      while (hitObject && !hitObject.userData.enemyInstance && hitObject.parent) {
+         hitObject = hitObject.parent;
+      }
 
-        if (hitObject && hitObject.userData.enemyInstance) {
-            const enemyInstance = hitObject.userData.enemyInstance;
-            enemyInstance.takeDamage(2);
-            console.log(`Acertou ${hitObject.name}, HP restante: ${enemyInstance.hp}`);
-        } else {
-            console.log("Acertou objeto sem enemyInstance");
-        }
-    }
+      if (hitObject && hitObject.userData.enemyInstance) {
+         const enemyInstance = hitObject.userData.enemyInstance;
+         enemyInstance.takeDamage(2);
+         console.log(`Acertou ${hitObject.name}, HP restante: ${enemyInstance.hp}`);
+      } else {
+         console.log("Acertou objeto sem enemyInstance");
+      }
+   }
 }
 
 
@@ -140,7 +144,7 @@ function shoot(scene, camera, collisionObjects) {
 
    // Apenas para o launcher:
    const bulletGeometry = new THREE.SphereGeometry(0.5, 8, 8);
-   const bulletMaterial = new THREE.MeshLambertMaterial({color: 'white'});
+   const bulletMaterial = new THREE.MeshLambertMaterial({ color: 'white' });
    const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
 
    bullet.castShadow = true;
@@ -154,7 +158,7 @@ function shoot(scene, camera, collisionObjects) {
    const barrelOffset = new THREE.Vector3(0, 0, -0.1);
    barrelOffset.applyQuaternion(gun.quaternion);
    bullet.position.copy(gunWorldPosition).add(barrelOffset);
-   bullet.scale.set(1, 1, 1); 
+   bullet.scale.set(1, 1, 1);
 
    const direction = new THREE.Vector3();
    camera.getWorldDirection(direction);
@@ -206,16 +210,16 @@ function updateBullets(clock, scene, collisionObjects) {
 
 function handleShootingState() {
    window.addEventListener('mousedown', () => {
-    isShooting = true;
-});
+      isShooting = true;
+   });
 
-window.addEventListener('mouseup', () => {
-    isShooting = false;
-    if (currentWeapon === 'chaingun' && shootAction) {
-        shootAction.stop(); 
-        chaingunSprite.setFrame(0); 
-    }
-});
+   window.addEventListener('mouseup', () => {
+      isShooting = false;
+      if (currentWeapon === 'chaingun' && shootAction) {
+         shootAction.stop();
+         chaingunSprite.setFrame(0, 0);
+      }
+   });
 }
 
 function canShootNow(currentTime) {
