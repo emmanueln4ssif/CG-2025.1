@@ -9,66 +9,13 @@ import { placeKeyAndUnlockDoor, openDoor, updateDoor, updateElevator, isPlayerOn
 import { sunLight, ambientLight } from './light.js';
 import { createEnemy, updateEnemies, allEnemies, checkDefeatedEnemies } from './enemies/enemies.js';
 import { SpriteMixer } from "../../libs/sprites/SpriteMixer.js";
-import {CubeTextureLoaderSingleFile} from "../../libs/util/CubeTextureLoaderSingleFile.js";
-// --- Cena Básica ---
+import { CubeTextureLoaderSingleFile } from "../../libs/util/CubeTextureLoaderSingleFile.js";
+import { manager } from './loadingManager.js';
+
+//
 export let scene = new THREE.Scene()
-let renderer = initRenderer();
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-//renderer.setClearColor("rgb(8, 79, 150)");
-
-// GARANTE QUE TODOS OS OBJETOS USAM SOMBRA
-scene.traverse(obj => {
-   if (obj.isMesh) {
-      obj.castShadow = true;
-      obj.receiveShadow = true;
-   }
-});
-
-let cubeMapTexture = new CubeTextureLoaderSingleFile().loadSingle('assets/textures/skybox/sky01.png', 1);
-scene.background = cubeMapTexture;
-
-//Luzes
-scene.add(ambientLight);
-scene.add(sunLight);
-
-export let camera = initCamera(new THREE.Vector3(0.0, 0.0, -10));
-const clock = new Clock();
-let spriteMixer = SpriteMixer();
-
-let collisionObjects = [];
-setupEnvironment(scene, collisionObjects, sunLight);
-
-// Setup do personagem e câmera
-setupPlayer(camera, scene, renderer);
-setupGun(camera);
-setupWeaponSwitching();
-setupChaingun(camera, spriteMixer)
-setupCrosshair();
-handleShootingState();
-
-// Setup dos inimigos
-// createEnemy('lost_soul', new THREE.Vector3(115, 15, 190), scene, collisionObjects);
-// createEnemy('lost_soul', new THREE.Vector3(205, 18, 190), scene, collisionObjects);
-// createEnemy('lost_soul', new THREE.Vector3(160, 8, 150), scene, collisionObjects);
-// createEnemy('lost_soul', new THREE.Vector3(120, 12, 120), scene, collisionObjects);
-// createEnemy('lost_soul', new THREE.Vector3(200, 14, 120), scene, collisionObjects);
-// createEnemy('cacodemon', new THREE.Vector3(5, 25, 190), scene, collisionObjects);
-// createEnemy('cacodemon', new THREE.Vector3(45, 25, 150), scene, collisionObjects);
-// createEnemy('cacodemon', new THREE.Vector3(-25, 25, 180), scene, collisionObjects);
-
 // Redimensionamento da janela
 window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
-
-// --- Plataforma com Chave ---
-let keyFading = false; // Variável para controlar o desvanecimento da chave
-let keyFadeSpeed = 0.02; // Velocidade de desvanecimento da chave
-let emissiveBoost = 0.05; // Intensidade do brilho da chave
-controls.getObject().hasKey; // Variável para controlar se o jogador pegou a chave e ainda não a usou
-let doorIsOpening = false; // Variável para controlar se a porta está abrindo
-let platformKey1Raised = false; // Variável para controlar se a plataforma com a chave vermelha já foi levantada
-let platformKey2Raised = false; // Variável para controlar se a plataforma com a chave amarela já foi levantada
-let doorIsOpen = false;
 
 // -- Elevador ---
 export let elevatorBase = scene.getObjectByName("elevatorBase"); // atribuído ao construir a plataforma
@@ -78,10 +25,67 @@ export let elevatorGoingDown = false; // variável para controlar se o elevador 
 export let elevatorGoingUp = false; // variável para controlar se o elevador está indo para cima
 export let elevatorWaiting = false; // variável para controlar se o elevador está esperando
 
+//Variáveis de ambiente
+export let camera = initCamera(new THREE.Vector3(0.0, 0.0, -10));
+let renderer = initRenderer();
+const clock = new Clock();
+let collisionObjects = [];
+let spriteMixer = SpriteMixer();
+let cubeMapTexture = new CubeTextureLoaderSingleFile(manager).loadSingle('assets/textures/skybox/sky01.png', 1);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const currentWorldPosition = new THREE.Vector3();
+// GARANTE QUE TODOS OS OBJETOS USAM SOMBRA
+scene.traverse(obj => {
+   if (obj.isMesh) {
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+   }
+});
+scene.background = cubeMapTexture;
+scene.add(ambientLight);
+scene.add(sunLight);
+
+// --- Plataforma com Chave ---
+let keyFading = false; // Variável para controlar o desvanecimento da chave
+let keyFadeSpeed = 0.02; // Velocidade de desvanecimento da chave
+let emissiveBoost = 0.05; // Intensidade do brilho da chave
+let doorIsOpening = false; // Variável para controlar se a porta está abrindo
+let platformKey1Raised = false; // Variável para controlar se a plataforma com a chave vermelha já foi levantada
+let platformKey2Raised = false; // Variável para controlar se a plataforma com a chave amarela já foi levantada
+let doorIsOpen = false;
 const desiredWorldY = 40;
 
-const currentWorldPosition = new THREE.Vector3();
-yellowKey.getWorldPosition(currentWorldPosition);
+/// Elementos do HTML
+const loadingText = document.getElementById("loading-text");
+const startButton = document.getElementById("start-button");
+const loadingScreen = document.getElementById("loading-screen");
+
+
+function initGame() {
+
+   setupEnvironment(scene, collisionObjects, sunLight);
+   setupPlayer(camera, scene, renderer);
+   setupGun(camera);
+   setupWeaponSwitching();
+   setupChaingun(camera, spriteMixer)
+   setupCrosshair();
+   handleShootingState();
+   controls.getObject().hasKey; // Variável para controlar se o jogador pegou a chave e ainda não a usou
+
+   // Setup dos inimigos
+   createEnemy('lost_soul', new THREE.Vector3(115, 15, 190), scene, collisionObjects);
+   createEnemy('lost_soul', new THREE.Vector3(205, 18, 190), scene, collisionObjects);
+   createEnemy('lost_soul', new THREE.Vector3(160, 8, 150), scene, collisionObjects);
+   createEnemy('lost_soul', new THREE.Vector3(120, 12, 120), scene, collisionObjects);
+   createEnemy('lost_soul', new THREE.Vector3(200, 14, 120), scene, collisionObjects);
+   createEnemy('cacodemon', new THREE.Vector3(5, 25, 190), scene, collisionObjects);
+   createEnemy('cacodemon', new THREE.Vector3(45, 25, 150), scene, collisionObjects);
+   createEnemy('cacodemon', new THREE.Vector3(-25, 25, 180), scene, collisionObjects);
+   yellowKey.getWorldPosition(currentWorldPosition);
+
+   render();
+}
 
 // --- Renderização ---
 function render() {
@@ -92,11 +96,6 @@ function render() {
 
    // Tiro
    updateFireRate(); // Atualiza a taxa de disparo com base na arma atual
-   // const currentTime = performance.now();
-   // if (canShootNow(currentTime)) {
-   //    shoot(scene, camera);
-   //    markShotFired(currentTime);
-   // }
 
    const deltaMs = delta * 1000; // converter para milissegundos
 
@@ -122,13 +121,13 @@ function render() {
    updateEnemies(delta, controls.getObject(), camera, scene, collisionObjects, bullets);
 
    // Atualização da porta da área 2
-   updateDoor(scene); 
+   updateDoor(scene);
 
    // Atualização do elevador da área 2
-   updateElevator(); 
+   updateElevator();
 
    // Atualização da plataforma com as chaves vermelha e amarela
-   updatePlatformMovement(); 
+   updatePlatformMovement();
 
    //Verifica se os inimigos de cada uma das areas foi derrotado
    const checkDefeated = checkDefeatedEnemies(controls.getObject());
@@ -203,7 +202,7 @@ function render() {
    //Define comportamento do elevador acaso o usuário caia da plataforma e precise voltar para o topo
    const isElevatorAtTop = Math.abs(elevatorState.base.position.y - (elevatorState.base.geometry.parameters.height / 2)) < 0.05;
 
-     //Se o elevador está no topo, parado, e o jogador está no chão
+   //Se o elevador está no topo, parado, e o jogador está no chão
    if (isElevatorAtTop && !elevatorState.moving && controls.getObject().position.y < 2 && doorIsOpen) {
       elevatorState.targetY = - (elevatorState.base.geometry.parameters.height / 2) + 0.1;
       elevatorState.moving = true;
@@ -227,5 +226,30 @@ window.addEventListener('keydown', (event) => {
    }
 });
 
-// Iniciar o loop de renderização
-render();
+manager.onProgress = (url, itemsLoaded, itemsTotal) => {
+   const loadingBar = document.getElementById("loading-bar");
+   const loadingText = document.getElementById("loading-text");
+
+   const progressPercent = (itemsLoaded / itemsTotal) * 100;
+   loadingBar.style.width = progressPercent + "%";
+
+   loadingText.innerText = `LOADING GAME... ${Math.round(progressPercent)}%`;
+};
+
+manager.onLoad = () => {
+   const startButton = document.getElementById("start-button");
+   startButton.style.display = "inline-block";
+
+   startButton.addEventListener("click", () => {
+      const loadingScreen = document.getElementById("loading-screen");
+      loadingScreen.classList.add("fade-out");
+      setTimeout(() => {
+         loadingScreen.remove();
+         initGame(); 
+      }, 250); 
+   });
+};
+
+
+
+

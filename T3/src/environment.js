@@ -6,11 +6,11 @@ import { controls } from './player.js';
 import { Group } from '../../build/three.module.js';
 import { addGreekColumnsToPlatform, createGreekFrontColumns, buildPlatformArea1, pillarTextures } from './area1.js';
 import { buildPlatformWithElevator, createRepeatingMaterial } from './area2.js';
-
+import { manager } from './loadingManager.js';
 
 export let elevatorBase, yellowKey, rectangleWithYellowKey, area2;
 
-const textureLoader = new THREE.TextureLoader();
+const textureLoader = new THREE.TextureLoader(manager);
 const wallTextures = {
   colorMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_Color.png'),
   aoMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_AmbientOcclusion.png'),

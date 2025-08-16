@@ -4,6 +4,7 @@ import { createGroundPlaneXZ } from '../../libs/util/util.js';
 import { buildKey, createPlatformWithKey, updateObject, key, addRectangleWithKey } from './key.js';
 import { controls } from './player.js';
 import { Group } from '../../build/three.module.js';
+import { manager } from './loadingManager.js';
 
 export const elevatorState = {
   moving: false,
@@ -26,7 +27,7 @@ let keyFadeSpeed = 0.02;
 
 let lastElevatorUse = 0;
 const elevatorCooldown = 5000;
-const loader = new THREE.TextureLoader();
+const loader = new THREE.TextureLoader(manager);
 
 //TEXTURAS DE METAL:
 const metalTextures = {
@@ -40,7 +41,6 @@ const floorMetalTextures = {
   colorMap: loader.load('assets/textures/area2/floor/floor_color.png'),
   metalnessMap: loader.load('assets/textures/area2/floor/floor_Metalness.png'),
   displacementMap: loader.load('assets/textures/area2/floor/floor_Displacement.png'),
-  specularMap: loader.load('assets/textures/area2/floor/floor_Roughness.png'),
   normalMap: loader.load('assets/textures/area2/floor/floor_NormalGL.png')
 };
 
