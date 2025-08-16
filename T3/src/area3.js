@@ -1,16 +1,17 @@
 // area3.js
 import * as THREE from 'three';
-import {GLTFLoader} from '../../build/jsm/loaders/GLTFLoader.js';
+import { GLTFLoader } from '../../build/jsm/loaders/GLTFLoader.js';
 import { OBJLoader } from '../../build/jsm/loaders/OBJLoader.js';
 import { MTLLoader } from '../../build/jsm/loaders/MTLLoader.js';
 import { getMaxSize } from "../../libs/util/util.js";
+import { manager } from './loadingManager.js';
 
 export function buildHangarPlatform(scene, sideSize, frontSize, height, position, collisionObjects) {
   const areaGroup = new THREE.Group();
   areaGroup.name = "Area3";
 
   // Piso
-  const textureLoader = new THREE.TextureLoader();
+  const textureLoader = new THREE.TextureLoader(manager);
   const floorTexture = textureLoader.load('assets/floor.jpg');
   floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
   floorTexture.repeat.set(frontSize / 5, sideSize / 5);
@@ -25,14 +26,14 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
   areaGroup.add(floor);
 
   // Carregar o modelo do hangar
-  const loader = new GLTFLoader();
+  const loader = new GLTFLoader(manager);
   loader.load(
-    'assets/hangar/scene.gltf', 
+    'assets/hangar/scene.gltf',
     function (gltf) {
       const hangarModel = gltf.scene;
-      
+
       // Configurar sombras para todos os meshes do modelo
-      hangarModel.traverse(function(node) {
+      hangarModel.traverse(function (node) {
         if (node.isMesh) {
           node.castShadow = true;
           node.receiveShadow = true;
@@ -42,12 +43,12 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
       // Ajustar escala e posição do hangar
       hangarModel.scale.set(2, 2, 2); // Ajuste esses valores conforme necessário
       hangarModel.position.set(position.x, height, position.z);
-      
+
       // Rotacionar se necessário (ajuste o ângulo conforme necessário)
       hangarModel.rotation.y = Math.PI / 2;
 
       // Adicionar colisão para o hangar
-      hangarModel.traverse(function(node) {
+      hangarModel.traverse(function (node) {
         if (node.isMesh) {
           collisionObjects.push(node);
         }
@@ -59,25 +60,25 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
       // Criar a porta do hangar como um objeto independente
       const doorTexture = textureLoader.load('assets/door.jpg');
       const doorGeometry = new THREE.BoxGeometry(0.5, 15, 25);
-      const doorMaterial = new THREE.MeshLambertMaterial({ 
-        map: doorTexture, 
+      const doorMaterial = new THREE.MeshLambertMaterial({
+        map: doorTexture,
         // side: THREE.DoubleSide 
       });
       const hangarDoor = new THREE.Mesh(doorGeometry, doorMaterial);
       doorTexture.wrapS = doorTexture.wrapT = THREE.RepeatWrapping;
-      doorTexture.repeat.set(3,3);
+      doorTexture.repeat.set(3, 3);
 
       // Posiciona a porta na lateral direita do hangar
       hangarDoor.position.set(position.x - 15, height + 7.5, position.z - 18);
       hangarDoor.rotation.y = Math.PI / 2;
-      
+
       hangarDoor.castShadow = true;
       hangarDoor.receiveShadow = true;
       hangarDoor.name = "hangarDoor";
-      
+
       // Adiciona a porta aos objetos de colisão
       collisionObjects.push(hangarDoor);
-      
+
       // Adiciona a porta diretamente ao grupo da área
       areaGroup.add(hangarDoor);
     },
@@ -90,16 +91,31 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
   );
 
   const assetManager = [];
-  // Carrega o avião (mantido do código original)
-  loadOBJFile('../assets/objects/', 'plane', 20.0, 0, true, collisionObjects);
+
+  // Carrega o avião (mantido do código original), testa dois caminhos por causa do gitpages
+  const path1 = './assets/objects/plane.obj';
+  const path2 = '../assets/objects/plane.obj';
+
+  fetch(path1)
+    .then(response => {
+      if (response.ok) {
+        loadOBJFile('./assets/objects/', 'plane', 20.0, 0, true, collisionObjects);
+      } else {
+        loadOBJFile('../assets/objects/', 'plane', 20.0, 0, true, collisionObjects);
+      }
+    })
+    .catch(() => {
+      loadOBJFile('../assets/objects/', 'plane', 20.0, 0, true, collisionObjects);
+    });
+
 
   function loadOBJFile(modelPath, modelName, desiredScale, angle, visibility, collisionObjects) {
-    var mtlLoader = new MTLLoader();
+    var mtlLoader = new MTLLoader(manager);
     mtlLoader.setPath(modelPath);
     mtlLoader.load(modelName + '.mtl', function (materials) {
       materials.preload();
 
-      var objLoader = new OBJLoader();
+      var objLoader = new OBJLoader(manager);
       objLoader.setMaterials(materials);
       objLoader.setPath(modelPath);
       objLoader.load(modelName + ".obj", function (obj) {

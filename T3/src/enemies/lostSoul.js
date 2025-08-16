@@ -24,7 +24,7 @@ export class LostSoul {
         this.chargeStartPosition = new THREE.Vector3();
         this.chargeDirection = new THREE.Vector3();
         this.chargeMaxDistance = 40; // Distância que a investida percorre
-        
+
         // Define a área de ativação para este inimigo (Área 1)
         // Valores de exemplo, ajuste conforme o seu cenário
         this.activationArea = new THREE.Box3(
@@ -36,17 +36,42 @@ export class LostSoul {
         this.loadSounds();
     }
 
-    loadSounds() {
-        this.sounds = {
-            attack: new Audio('../0_assetsT3/sounds/lostSoul/lost_soul_attack.wav'),
-            injured: new Audio('../0_assetsT3/sounds/lostSoul/injured.wav'),
+    async loadSounds() {
+        const soundPaths = {
+            attack: [
+                './0_assetsT3/sounds/lostSoul/lost_soul_attack.wav',
+                '../0_assetsT3/sounds/lostSoul/lost_soul_attack.wav'
+            ],
+            injured: [
+                './0_assetsT3/sounds/lostSoul/injured.wav',
+                '../0_assetsT3/sounds/lostSoul/injured.wav'
+            ]
         };
 
-        // Para evitar delay no primeiro toque
-        Object.values(this.sounds).forEach(audio => {
-            audio.load();
-        });
+        this.sounds = {};
+
+        const loadAudio = async (paths) => {
+            for (const path of paths) {
+                try {
+                    const response = await fetch(path);
+                    if (response.ok) {
+                        const audio = new Audio(path);
+                        audio.load(); // pré-carrega o som
+                        return audio;
+                    }
+                } catch (e) {
+                    // ignora e tenta o próximo caminho
+                }
+            }
+            console.error("Nenhum caminho válido encontrado para o áudio:", paths);
+            return null;
+        };
+
+        for (const key in soundPaths) {
+            this.sounds[key] = await loadAudio(soundPaths[key]);
+        }
     }
+
 
     loadModel(position, scene) {
         const mtlLoader = new MTLLoader();
@@ -78,7 +103,7 @@ export class LostSoul {
     update(delta, playerObject, camera) {
         // Verifica se o jogador está na área de ativação
         this.checkActivation(playerObject.position);
-        
+
         if (this.isDying) {
             this.updateDyingAnimation(delta);
             return;
@@ -99,7 +124,7 @@ export class LostSoul {
                 break;
         }
     }
-    
+
     checkActivation(playerPosition) {
         const isPlayerInArea = this.activationArea.containsPoint(playerPosition);
         if (isPlayerInArea && !this.isActive) {
@@ -107,7 +132,7 @@ export class LostSoul {
             this.state = 'patrolling';
             this.speed = this.baseSpeed;
             this.chargeSpeed = this.baseChargeSpeed;
-        } 
+        }
     }
 
     takeDamage(amount) {
@@ -119,7 +144,7 @@ export class LostSoul {
 
         this.hp -= amount;
         if (this.hp < 0) this.hp = 0;
-        
+
         updateHealthBar(this.healthBar, this.hp, this.maxHp);
 
         if (this.hp <= 0) {
@@ -132,7 +157,7 @@ export class LostSoul {
     updatePatrolState(delta, playerObject) {
         const playerPosition = playerObject.position;
         if (this.mesh.position.distanceTo(playerPosition) < 40 && hasLineOfSight(this.mesh.position, playerPosition, this.collisionObjects, this.mesh)) {
-            
+
             // som do ataque
             this.sounds.attack.currentTime = 0;
             this.sounds.attack.play();
@@ -140,7 +165,7 @@ export class LostSoul {
             // --- LÓGICA DE MUDANÇA DE ESTADO ATUALIZADA ---
             // 1. "Memoriza" a posição inicial da caveira
             this.chargeStartPosition.copy(this.mesh.position);
-            
+
             // 2. Calcula a direção FIXA do ataque e guarda-a
             this.chargeDirection.subVectors(playerPosition, this.chargeStartPosition).normalize();
 
@@ -172,7 +197,7 @@ export class LostSoul {
         this.mesh.position.add(moveStep);
 
         const distanceToPlayer = this.mesh.position.distanceTo(playerObject.position);
-        if (distanceToPlayer < 2.5 ) { //&& this.hitCooldown <= 0
+        if (distanceToPlayer < 2.5) { //&& this.hitCooldown <= 0
             //this.hitCooldown = 1.0; // Impede spam de mensagens        
             this.mesh.position.add(moveStep);
         }
@@ -182,16 +207,16 @@ export class LostSoul {
             this.state = 'patrolling'; // Terminou o percurso, volta a patrulhar
         }
     }
-    
-    updateDyingAnimation(delta) { this.mesh.traverse(c => { if(c.isMesh && c.material) { c.material.transparent=true; c.material.opacity-=delta*1.5; if(c.material.opacity<=0) this.readyToRemove=true; } }); }
-    changePatrolDirection() { this.patrolDirection.set(Math.random()*2-1, Math.random()*0.5-0.25, Math.random()*2-1).normalize(); this.patrolTimer=Math.random()*3+2; }
-    
+
+    updateDyingAnimation(delta) { this.mesh.traverse(c => { if (c.isMesh && c.material) { c.material.transparent = true; c.material.opacity -= delta * 1.5; if (c.material.opacity <= 0) this.readyToRemove = true; } }); }
+    changePatrolDirection() { this.patrolDirection.set(Math.random() * 2 - 1, Math.random() * 0.5 - 0.25, Math.random() * 2 - 1).normalize(); this.patrolTimer = Math.random() * 3 + 2; }
+
 
     checkCollision(s) {
         const b = new THREE.Box3().setFromObject(this.mesh);
         b.translate(s);
         for (const o of this.collisionObjects) {
-              if (o === this.mesh || o.name === "Player") {
+            if (o === this.mesh || o.name === "Player") {
                 continue;
             }
             if (b.intersectsBox(new THREE.Box3().setFromObject(o))) {

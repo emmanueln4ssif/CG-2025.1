@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Clock } from 'three';
-import { initRenderer, initCamera, initDefaultBasicLight, setDefaultMaterial, onWindowResize, createGroundPlaneXZ , InfoBox} from "../../libs/util/util.js";
+import { initRenderer, initCamera, initDefaultBasicLight, setDefaultMaterial, onWindowResize, createGroundPlaneXZ, InfoBox } from "../../libs/util/util.js";
 import { setupEnvironment } from './environment.js';
 import { key, platform, checkKeyPickup, updatePlatformMovement, raisePlatformTo, yellowKey, redKey } from './key.js';
 import { setupPlayer, updatePlayer, controls, player } from './player.js';
@@ -72,7 +72,7 @@ function initGame() {
    setupCrosshair();
    handleShootingState();
    controls.getObject().hasKey; // Variável para controlar se o jogador pegou a chave e ainda não a usou
-setupWeaponSounds(camera);
+   setupWeaponSounds(camera);
 
    // Setup dos inimigos
    createEnemy('lost_soul', new THREE.Vector3(115, 15, 190), scene, collisionObjects);
@@ -233,35 +233,17 @@ let isMusicPlaying = true;
 const listener = new THREE.AudioListener();
 camera.add(listener); // Adicione o listener na câmera!
 
-const audioLoader = new THREE.AudioLoader();
+const audioLoader = new THREE.AudioLoader(manager);
 backgroundMusic = new THREE.Audio(listener);
 
-audioLoader.load('../0_assetsT3/sounds/doom.mp3', function(buffer) {
-  backgroundMusic.setBuffer(buffer);
-  backgroundMusic.setLoop(true);
-  backgroundMusic.setVolume(0.5);
-  backgroundMusic.play();
-});
 
-window.addEventListener('keydown', function(event) {
-  if (event.code === 'KeyQ') {
-    if (isMusicPlaying) {
-      backgroundMusic.pause();
-    } else {
-      backgroundMusic.play();
-    }
-    isMusicPlaying = !isMusicPlaying;
-  }
-});
-
-function showInformation()
-{
-  // Use this to show information onscreen
-  let controls = new InfoBox();
-    controls.add("Pressione Q para ligar/desligar a música de fundo");
-    controls.addParagraph();
-    controls.show();
-    controls.infoBox.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+function showInformation() {
+   // Use this to show information onscreen
+   let controls = new InfoBox();
+   controls.add("Pressione Q para ligar/desligar a música de fundo");
+   controls.addParagraph();
+   controls.show();
+   controls.infoBox.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
 }
 
 manager.onProgress = (url, itemsLoaded, itemsTotal) => {
@@ -283,11 +265,28 @@ manager.onLoad = () => {
       loadingScreen.classList.add("fade-out");
       setTimeout(() => {
          loadingScreen.remove();
-         initGame(); 
-      }, 250); 
+         initGame();
+
+         audioLoader.load('../0_assetsT3/sounds/doom.mp3', function (buffer) {
+            backgroundMusic.setBuffer(buffer);
+            backgroundMusic.setLoop(true);
+            backgroundMusic.setVolume(0.5);
+            backgroundMusic.play();
+         });
+
+         window.addEventListener('keydown', function (event) {
+            if (event.code === 'KeyQ') {
+               if (isMusicPlaying) {
+                  backgroundMusic.pause();
+               } else {
+                  backgroundMusic.play();
+               }
+               isMusicPlaying = !isMusicPlaying;
+            }
+         });
+
+      }, 250);
    });
 };
-
-
 
 

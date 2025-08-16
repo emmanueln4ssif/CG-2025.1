@@ -53,7 +53,7 @@ function setupChaingun(camera, spriteMixer) {
       chaingunSprite.position.set(0, -1.3, -3.5);
       chaingunSprite.renderOrder = 999;
       chaingunSprite.material.depthTest = false;
- 
+
       shootAction = spriteMixer.Action(chaingunSprite, 100, 0, 1, 0, 2);
       chaingunSprite.setFrame(0, 0);
 
@@ -241,25 +241,42 @@ function setupWeaponSwitching() {
    });
 }
 
-function setupWeaponSounds(camera) {
+async function setupWeaponSounds(camera) {
    const listener = new THREE.AudioListener();
    camera.add(listener);
 
    chaingunSound = new THREE.Audio(listener);
    launcherSound = new THREE.Audio(listener);
 
-   soundLoader.load('../0_assetsT3/sounds/chaingunFiring.wav', (buffer) => {
-      chaingunSound.setBuffer(buffer);
-      chaingunSound.setLoop(false);
-      chaingunSound.setVolume(0.5);
-   });
+   const loadBufferWithFallback = async (paths, audio) => {
+      for (const path of paths) {
+         try {
+            const response = await fetch(path);
+            if (response.ok) {
+               soundLoader.load(path, (buffer) => {
+                  audio.setBuffer(buffer);
+                  audio.setLoop(false);
+                  audio.setVolume(0.5);
+               });
+               return;
+            }
+         } catch (e) {
+         }
+      }
+      console.error("Nenhum caminho válido encontrado para o áudio:", paths);
+   };
 
-   soundLoader.load('../0_assetsT3/sounds/rocketFiring.wav', (buffer) => {
-      launcherSound.setBuffer(buffer);
-      launcherSound.setLoop(false);
-      launcherSound.setVolume(0.5);
-   });
+   await loadBufferWithFallback([
+      './0_assetsT3/sounds/chaingunFiring.wav',
+      '../0_assetsT3/sounds/chaingunFiring.wav'
+   ], chaingunSound);
+
+   await loadBufferWithFallback([
+      './0_assetsT3/sounds/rocketFiring.wav',
+      '../0_assetsT3/sounds/rocketFiring.wav'
+   ], launcherSound);
 }
+
 
 export {
    setupGun,
@@ -277,5 +294,5 @@ export {
    updateFireRate,
    currentWeapon,
    shootAction,
-   setupWeaponSounds 
+   setupWeaponSounds
 };

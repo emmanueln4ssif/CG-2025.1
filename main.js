@@ -56,7 +56,10 @@ let platformKey2Raised = false; // Variável para controlar se a plataforma com 
 let doorIsOpen = false;
 const desiredWorldY = 40;
 
-
+/// Elementos do HTML
+const loadingText = document.getElementById("loading-text");
+const startButton = document.getElementById("start-button");
+const loadingScreen = document.getElementById("loading-screen");
 
 
 function initGame() {
@@ -69,6 +72,7 @@ function initGame() {
    setupCrosshair();
    handleShootingState();
    controls.getObject().hasKey; // Variável para controlar se o jogador pegou a chave e ainda não a usou
+   setupWeaponSounds(camera);
 
    // Setup dos inimigos
    createEnemy('lost_soul', new THREE.Vector3(115, 15, 190), scene, collisionObjects);
@@ -80,7 +84,7 @@ function initGame() {
    createEnemy('cacodemon', new THREE.Vector3(45, 25, 150), scene, collisionObjects);
    createEnemy('cacodemon', new THREE.Vector3(-25, 25, 180), scene, collisionObjects);
    yellowKey.getWorldPosition(currentWorldPosition);
-
+   showInformation();
    render();
 }
 
@@ -222,6 +226,43 @@ window.addEventListener('keydown', (event) => {
       raisePlatformTo(4.5, platform); // altura desejada
    }
 });
+
+let backgroundMusic;
+let isMusicPlaying = true;
+
+const listener = new THREE.AudioListener();
+camera.add(listener); // Adicione o listener na câmera!
+
+const audioLoader = new THREE.AudioLoader(manager);
+backgroundMusic = new THREE.Audio(listener);
+
+audioLoader.load('0_assetsT3/sounds/doom.mp3', function(buffer) {
+  backgroundMusic.setBuffer(buffer);
+  backgroundMusic.setLoop(true);
+  backgroundMusic.setVolume(0.5);
+  backgroundMusic.play();
+});
+
+window.addEventListener('keydown', function(event) {
+  if (event.code === 'KeyQ') {
+    if (isMusicPlaying) {
+      backgroundMusic.pause();
+    } else {
+      backgroundMusic.play();
+    }
+    isMusicPlaying = !isMusicPlaying;
+  }
+});
+
+function showInformation()
+{
+  // Use this to show information onscreen
+  let controls = new InfoBox();
+    controls.add("Pressione Q para ligar/desligar a música de fundo");
+    controls.addParagraph();
+    controls.show();
+    controls.infoBox.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+}
 
 window.addEventListener('DOMContentLoaded', () => {
 

@@ -10,8 +10,31 @@ let keyFadeSpeed = 0.02;
 let emissiveBoost = 0.02;
 
 // Som da chave
-const keySound = new Audio('../0_assetsT3/sounds/chave.wav');
-keySound.load(); // Pré-carrega o som para evitar delay
+async function loadAudio(paths) {
+    for (const path of paths) {
+        try {
+            const response = await fetch(path);
+            if (response.ok) {
+                const audio = new Audio(path);
+                audio.load(); // pré-carrega o som
+                return audio;
+            }
+        } catch (e) {
+            console.log("Erro ao carregar o áudio:", e);
+        }
+    }
+    console.error("Nenhum caminho válido encontrado para o áudio:", paths);
+    return null;
+}
+
+let keySound;
+(async () => {
+    keySound = await loadAudio([
+        './0_assetsT3/sounds/chave.wav',
+        '../0_assetsT3/sounds/chave.wav'
+    ]);
+    if (keySound) keySound.play();
+})();
 
 // CONSTRUÇÃO DE OBJETO CHAVE -------------------------------------------------------------------------------
 
@@ -210,7 +233,7 @@ export function checkKeyPickup(controls, platform, receivedKey, scene) {
         } else if (receivedKey.name === "yellowKey") {
             controls.getObject().hasYellowKey = true;
         }
-        
+
         // Toca o som de pegar a chave
         keySound.play();
 

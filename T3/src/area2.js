@@ -7,10 +7,37 @@ import { Group } from '../../build/three.module.js';
 import { manager } from './loadingManager.js';
 
 // Sons
-const doorSound = new Audio('../0_assetsT3/sounds/doorOpening.wav');
-const elevatorSound = new Audio('../0_assetsT3/sounds/plataformaMovendo.wav');
-doorSound.load();
-elevatorSound.load();
+let doorSound, elevatorSound;
+
+async function loadSound(paths) {
+  for (const path of paths) {
+    try {
+      const response = await fetch(path);
+      if (response.ok) {
+        return new Audio(path);
+      }
+    } catch (e) {
+    }
+  }
+  console.error("Nenhum caminho válido encontrado para o som:", paths);
+  return null;
+}
+
+(async () => {
+  doorSound = await loadSound([
+    './0_assetsT3/sounds/doorOpening.wav',
+    '../0_assetsT3/sounds/doorOpening.wav'
+  ]);
+
+  elevatorSound = await loadSound([
+    './0_assetsT3/sounds/plataformaMovendo.wav',
+    '../0_assetsT3/sounds/plataformaMovendo.wav'
+  ]);
+})();
+
+// Exemplo de uso:
+  if (doorSound) doorSound.play();
+  if (elevatorSound) elevatorSound.play();
 
 export const elevatorState = {
   moving: false,
@@ -146,7 +173,7 @@ export function buildPlatformWithElevator(scene, sideSize, frontSize, height, po
     frontTraseiraMaterial,
     frontTraseiraMaterial
   ];
-  
+
 
   const frontalWidth = (frontSize - elevatorLength) / 2;
 
@@ -267,7 +294,7 @@ export function createElevatorDoor(x, y, z, doorWidth, doorHeight, doorDepth) {
   const activationBlock = new THREE.Mesh(
     new THREE.BoxGeometry(3, 0.5, 2),
     materialBlock
-    
+
   );
   activationBlock.position.set(doorGroup.position.x, 1, doorGroup.position.z - 0.5);
   doorGroup.add(activationBlock);
@@ -435,7 +462,7 @@ export function canUseElevator() {
 export function addRectangle(width, height, depth, position, color) {
 
   //const rectangleMaterial = createRepeatingMaterial(3/6, height/6, caixa);
-  const texture = createRepeatingMaterial(width/4, height/4, caixa, -0.15, -0.1);
+  const texture = createRepeatingMaterial(width / 4, height / 4, caixa, -0.15, -0.1);
   texture.normalScale.set(0.1, 0.1);
   const geometry = new THREE.BoxGeometry(width, height, depth);
   geometry.attributes.uv2 = geometry.attributes.uv;
