@@ -6,6 +6,8 @@ import { controls } from './player.js';
 import { BufferGeometry, Group } from '../../build/three.module.js';
 import { manager } from './loadingManager.js';
 
+
+//Carregar texturas:
 const loader = new THREE.TextureLoader(manager);
 
 export const pillarTextures = {
@@ -66,12 +68,13 @@ export function buildPlatformArea1(scene, side_size, front_size, height, positio
     ramp.visible = false;
 
 
-    //Geometrias da base da área
-    // Crie a geometria normalmente, sem modificar os UVs.
+    //Geometrias base da área, sem mudar uv
     const frontalGeometry = new THREE.BoxGeometry((front_size - step_size) / 2, height, depth);
     const traseiraGeometry = new THREE.BoxGeometry(front_size, height, side_size - stair_depth);
 
     // Cria os materiais para cada tipo de face, pensando na repetição
+
+    //Materiais da frente
     const sideMaterial = createRepeatingMaterial(1, 0.5, areaTextures);
     const mainMaterial = createRepeatingMaterial(4, 0.25, areaTextures);
 
@@ -204,7 +207,7 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
     }
 
     const numFrontColumnsTotal = 10;
-    const escadaHalfWidth = 20; // ajuste para a largura da escada
+    const escadaHalfWidth = 20; 
 
     const numColumnsEachSide = numFrontColumnsTotal / 2;
 
@@ -302,8 +305,7 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
     const columnRadius = 4 * scale;
     const spacing = 30 * scale;
 
-    //Criar texturas
-
+    //Criar materiais texturizados
     const columnMaterial = createRepeatingMaterial(1, 2, pillarTextures);
     const topBeamMaterial = createRepeatingMaterial(6, 0.25, pillarTextures);
     const roofMaterial = createRepeatingMaterial(3, 0.25, pillarTextures);
@@ -402,9 +404,13 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
 
 }
 
+
+//-------------------------------------
 // Função para definir o quanto um material se repete:
+// -------------------------------------
+
 function createRepeatingMaterial(repeatX, repeatY, maps, displacement, displacementBias) {
-    // Função auxiliar para clonar e configurar cada textura
+    
     const setupTexture = (map) => {
         if (!map) return null;
         const texture = map.clone();

@@ -59,7 +59,8 @@ let lastElevatorUse = 0;
 const elevatorCooldown = 5000;
 const loader = new THREE.TextureLoader(manager);
 
-//TEXTURAS DE METAL:
+
+// TEXTURAS ---------------------------------------------------------------------------------------
 const metalTextures = {
   colorMap: loader.load('assets/textures/area2/metal/MetalPlates001_1K-PNG_Color.png'),
   metalnessMap: loader.load('assets/textures/area2/metal/MetalPlates001_1K-PNG_Metalness.png'),
@@ -107,6 +108,8 @@ const ironPlateTextures = {
   displacementMap: loader.load('assets/textures/area2/iron_plate/iron_plate_displacement.png'),
   normalMap: loader.load('assets/textures/area2/iron_plate/iron_plate_normal.png')
 };
+
+// ---------------------------------------------------------------------------------------------------
 
 // AREA 2 ---------------------------------------------------------------------------
 // Esta seção contém funções relacionadas à Área 2, incluindo a criação da plataforma com elevador
@@ -535,7 +538,7 @@ function addMultipleRectangles(platform, sideSize, frontSize, height) {
 
 }
 
-// Função para definir o quanto um material se repete:
+// Função para trabalhar os materiais comuns
 export function createRepeatingMaterial(repeatX, repeatY, maps, displacement, displacementBias) {
   const setupTexture = (map) => {
     if (!map) return null;
@@ -559,7 +562,7 @@ export function createRepeatingMaterial(repeatX, repeatY, maps, displacement, di
   });
 }
 
-// Função para definir o quanto um material se repete:
+// Função para trabalhar os materiais metálicos
 function createRepeatingMetalMaterial(repeatX, repeatY, maps) {
 
   const setupTexture = (map) => {
@@ -571,15 +574,13 @@ function createRepeatingMetalMaterial(repeatX, repeatY, maps) {
     return texture;
   };
 
-  return new THREE.MeshStandardMaterial({
+  return new THREE.MeshLambertMaterial({
     map: setupTexture(maps.colorMap),
     aoMap: setupTexture(maps.aoMap),
     displacementMap: setupTexture(maps.displacementMap),
     displacementScale: 0.8,
     displacementBias: -0.15,
     normalMap: setupTexture(maps.normalMap),
-    metalnessMap: setupTexture(maps.metalnessMap),
-    roughnessMap: setupTexture(maps.roughnessMap),
     metalness: 0.7,
     roughness: 0.05
   });

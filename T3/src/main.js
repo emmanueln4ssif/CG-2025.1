@@ -11,7 +11,7 @@ import { createEnemy, updateEnemies, allEnemies, checkDefeatedEnemies } from './
 import { SpriteMixer } from "../../libs/sprites/SpriteMixer.js";
 import { CubeTextureLoaderSingleFile } from "../../libs/util/CubeTextureLoaderSingleFile.js";
 import { manager } from './loadingManager.js';
-import { openHangarDoor, hangarDoorIsOpen } from './area3.js';
+import { openHangarDoor, hangarDoorIsOpen, userIsOnHangar } from './area3.js';
 
 //
 export let scene = new THREE.Scene()
@@ -85,8 +85,6 @@ function initGame() {
    createEnemy('cacodemon', new THREE.Vector3(45, 25, 150), scene, collisionObjects);
    createEnemy('cacodemon', new THREE.Vector3(-25, 25, 180), scene, collisionObjects);
    yellowKey.getWorldPosition(currentWorldPosition);
-   controls.getObject().hasYellowKey = true;
-
    render();
 }
 showInformation();
@@ -168,6 +166,7 @@ function render() {
    if(controls.getObject().hasYellowKey) {
       openHangarDoor(scene, controls);
    }
+   
 
    // Verifica se o jogador desbloqueou a porta, se sim, abre a porta e move o elevador para baixo
    if (controls.getObject().hasRedKey && controls.getObject().unlockedDoor && !doorIsOpening && !doorIsOpen) {

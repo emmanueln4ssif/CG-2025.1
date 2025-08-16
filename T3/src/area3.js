@@ -6,7 +6,9 @@ import { MTLLoader } from '../../build/jsm/loaders/MTLLoader.js';
 import { getMaxSize } from "../../libs/util/util.js";
 import { manager } from './loadingManager.js';
 
-export let hangarDoorIsOpen = false; 
+export let hangarDoorIsOpen = false;
+export let hangarLight;
+export let hangarArea;
 
 export function buildHangarPlatform(scene, sideSize, frontSize, height, position, collisionObjects) {
   const areaGroup = new THREE.Group();
@@ -109,6 +111,22 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
       areaGroup.add(leftHangarDoor);
       areaGroup.add(rightFrontHangarDoor);
       areaGroup.add(leftFrontHangarDoor);
+
+      // Dentro do loader.load, após adicionar o hangar ao grupo
+      hangarLight = new THREE.DirectionalLight(0xe0e0e0, 0.3); // luz secundária
+      hangarLight.position.set(position.x, height + 5, position.z);
+      hangarLight.castShadow = false;
+      scene.add(hangarLight);
+
+      // Desliga inicialmente a luz do hangar
+      hangarLight.visible = false;
+
+      // Define a área do hangar como um Box3
+      hangarArea = new THREE.Box3(
+        new THREE.Vector3(position.x - frontSize / 2, position.y, position.z - sideSize / 2), // mínimo
+        new THREE.Vector3(position.x + frontSize / 2, position.y + height, position.z + sideSize / 2) // máximo
+      );
+
 
     },
     function (xhr) {
@@ -241,6 +259,22 @@ export function openHangarDoor(scene, controls) {
   }
 }
 
+export function userIsOnHangar(playerObject, hangarArea) {
+  if (!hangarArea || !playerObject) return false;
+
+  const playerPos = playerObject.position;
+
+  // Caixa do hangar
+  const baseBox = new THREE.Box3().setFromObject(hangarArea);
+
+  // Caixa simulando os pés do jogador
+  const feetBox = new THREE.Box3(
+    new THREE.Vector3(playerPos.x - 0.4, playerPos.y - 2.0, playerPos.z - 0.4),
+    new THREE.Vector3(playerPos.x + 0.4, playerPos.y - 2.0, playerPos.z + 0.4)
+  );
+
+  return baseBox.intersectsBox(feetBox);
+}
 
 // Sons
 let doorSound, elevatorSound;
@@ -270,3 +304,7 @@ async function loadSound(paths) {
     '../0_assetsT3/sounds/plataformaMovendo.wav'
   ]);
 })();
+
+//luzes hangar
+
+
