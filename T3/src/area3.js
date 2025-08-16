@@ -6,6 +6,8 @@ import { MTLLoader } from '../../build/jsm/loaders/MTLLoader.js';
 import { getMaxSize } from "../../libs/util/util.js";
 import { manager } from './loadingManager.js';
 
+export let hangarDoorIsOpen = false; 
+
 export function buildHangarPlatform(scene, sideSize, frontSize, height, position, collisionObjects) {
   const areaGroup = new THREE.Group();
   areaGroup.name = "Area3";
@@ -59,28 +61,55 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
 
       // Criar a porta do hangar como um objeto independente
       const doorTexture = textureLoader.load('assets/door.jpg');
-      const doorGeometry = new THREE.BoxGeometry(0.5, 15, 25);
+      const doorGeometry = new THREE.BoxGeometry(0.5, 14, 15);
+      const frontDoorGeometry = new THREE.BoxGeometry(0.5, 14, 12);
       const doorMaterial = new THREE.MeshLambertMaterial({
         map: doorTexture,
         // side: THREE.DoubleSide 
       });
-      const hangarDoor = new THREE.Mesh(doorGeometry, doorMaterial);
+      const rightHangarDoor = new THREE.Mesh(doorGeometry, doorMaterial);
       doorTexture.wrapS = doorTexture.wrapT = THREE.RepeatWrapping;
       doorTexture.repeat.set(3, 3);
 
       // Posiciona a porta na lateral direita do hangar
-      hangarDoor.position.set(position.x - 15, height + 7.5, position.z - 18);
-      hangarDoor.rotation.y = Math.PI / 2;
+      rightHangarDoor.position.set(position.x + 18, height + 7, position.z - 18);
+      rightHangarDoor.rotation.y = Math.PI / 2;
+      rightHangarDoor.castShadow = true;
+      rightHangarDoor.receiveShadow = true;
+      rightHangarDoor.name = "hangarDoor";
 
-      hangarDoor.castShadow = true;
-      hangarDoor.receiveShadow = true;
-      hangarDoor.name = "hangarDoor";
+      const leftHangarDoor = new THREE.Mesh(doorGeometry, doorMaterial);
+      leftHangarDoor.position.set(position.x - 16, height + 7, position.z - 18);
+      leftHangarDoor.rotation.y = Math.PI / 2;
+      leftHangarDoor.castShadow = true;
+      leftHangarDoor.receiveShadow = true;
+
+      const rightFrontHangarDoor = new THREE.Mesh(frontDoorGeometry, doorMaterial);
+      rightFrontHangarDoor.position.set(position.x - 6, height + 6, position.z - 18.5);
+      rightFrontHangarDoor.rotation.y = Math.PI / 2;
+      rightFrontHangarDoor.castShadow = true;
+      rightFrontHangarDoor.receiveShadow = true;
+      rightFrontHangarDoor.name = "rightHangarFrontDoor";
+
+      const leftFrontHangarDoor = new THREE.Mesh(frontDoorGeometry, doorMaterial);
+      leftFrontHangarDoor.position.set(position.x + 6, height + 6, position.z - 18.5);
+      leftFrontHangarDoor.rotation.y = Math.PI / 2;
+      leftFrontHangarDoor.castShadow = true;
+      leftFrontHangarDoor.receiveShadow = true;
+      leftFrontHangarDoor.name = "leftHangarFrontDoor";
 
       // Adiciona a porta aos objetos de colisão
-      collisionObjects.push(hangarDoor);
+      collisionObjects.push(rightHangarDoor);
+      collisionObjects.push(leftHangarDoor);
+      collisionObjects.push(rightFrontHangarDoor);
+      collisionObjects.push(leftFrontHangarDoor);
 
       // Adiciona a porta diretamente ao grupo da área
-      areaGroup.add(hangarDoor);
+      areaGroup.add(rightHangarDoor);
+      areaGroup.add(leftHangarDoor);
+      areaGroup.add(rightFrontHangarDoor);
+      areaGroup.add(leftFrontHangarDoor);
+
     },
     function (xhr) {
       console.log((xhr.loaded / xhr.total * 100) + '% carregado');
@@ -162,3 +191,82 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
 
   return areaGroup;
 }
+
+let leftDoorTargetX = null;
+let rightDoorTargetX = null;
+let doorSpeed = 0.01;
+
+export function openHangarDoor(scene, controls) {
+
+  const leftDoor = scene.getObjectByName("leftHangarFrontDoor");
+  const rightDoor = scene.getObjectByName("rightHangarFrontDoor");
+
+  //Se o bloco de ativação existir
+  if (leftDoor && rightDoor && hangarDoorIsOpen === false) {
+
+    const blockPosition = new THREE.Vector3();
+    leftDoor.getWorldPosition(blockPosition);
+
+    const distanceToDoor = controls.getObject().position.distanceTo(blockPosition);
+
+    // Se o jogador estiver próximo, define o alvo da porta
+    if (distanceToDoor < 15 && leftDoorTargetX === null && rightDoorTargetX === null) {
+      doorSound.play();
+      leftDoorTargetX = leftDoor.position.x + 6;
+      rightDoorTargetX = rightDoor.position.x - 6;
+    }
+
+    // Se o alvo está definido, move a porta suavemente
+    if (leftDoorTargetX !== null && rightDoorTargetX !== null) {
+      // Calcula o novo X com Lerp
+      leftDoor.position.x = THREE.MathUtils.lerp(leftDoor.position.x, leftDoorTargetX, doorSpeed);
+      rightDoor.position.x = THREE.MathUtils.lerp(rightDoor.position.x, rightDoorTargetX, doorSpeed);
+
+      // Se a porta estiver próxima o suficiente do alvo, para
+      if (Math.abs(leftDoor.position.x - leftDoorTargetX) < 0.01) {
+        leftDoor.position.x = leftDoorTargetX;
+        leftDoorTargetX = null;
+      }
+      if (Math.abs(rightDoor.position.x - rightDoorTargetX) < 0.01) {
+        rightDoor.position.x = rightDoorTargetX;
+        rightDoorTargetX = null;
+      }
+
+      // Marca a porta como aberta quando ambos os alvos forem atingidos
+      if (leftDoorTargetX === null && rightDoorTargetX === null) {
+        hangarDoorIsOpen = true;
+      }
+
+    }
+  }
+}
+
+
+// Sons
+let doorSound, elevatorSound;
+
+async function loadSound(paths) {
+  for (const path of paths) {
+    try {
+      const response = await fetch(path);
+      if (response.ok) {
+        return new Audio(path);
+      }
+    } catch (e) {
+    }
+  }
+  console.error("Nenhum caminho válido encontrado para o som:", paths);
+  return null;
+}
+
+(async () => {
+  doorSound = await loadSound([
+    './0_assetsT3/sounds/doorOpening.wav',
+    '../0_assetsT3/sounds/doorOpening.wav'
+  ]);
+
+  elevatorSound = await loadSound([
+    './0_assetsT3/sounds/plataformaMovendo.wav',
+    '../0_assetsT3/sounds/plataformaMovendo.wav'
+  ]);
+})();

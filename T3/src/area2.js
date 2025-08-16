@@ -35,9 +35,6 @@ async function loadSound(paths) {
   ]);
 })();
 
-// Exemplo de uso:
-  if (doorSound) doorSound.play();
-  if (elevatorSound) elevatorSound.play();
 
 export const elevatorState = {
   moving: false,

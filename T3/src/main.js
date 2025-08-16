@@ -11,6 +11,7 @@ import { createEnemy, updateEnemies, allEnemies, checkDefeatedEnemies } from './
 import { SpriteMixer } from "../../libs/sprites/SpriteMixer.js";
 import { CubeTextureLoaderSingleFile } from "../../libs/util/CubeTextureLoaderSingleFile.js";
 import { manager } from './loadingManager.js';
+import { openHangarDoor, hangarDoorIsOpen } from './area3.js';
 
 //
 export let scene = new THREE.Scene()
@@ -84,6 +85,7 @@ function initGame() {
    createEnemy('cacodemon', new THREE.Vector3(45, 25, 150), scene, collisionObjects);
    createEnemy('cacodemon', new THREE.Vector3(-25, 25, 180), scene, collisionObjects);
    yellowKey.getWorldPosition(currentWorldPosition);
+   controls.getObject().hasYellowKey = true;
 
    render();
 }
@@ -160,6 +162,11 @@ function render() {
    // Verifica se o jogador possui a chave vermelha e se aproximou o suficiente da porta, se sim, coloca a chave no bloco de ativação e a desbloqueia 
    if (controls.getObject().hasRedKey) {
       placeKeyAndUnlockDoor(scene, controls);
+   }
+
+   console.log("Tem chave amarela? ", controls.getObject().hasYellowKey);
+   if(controls.getObject().hasYellowKey) {
+      openHangarDoor(scene, controls);
    }
 
    // Verifica se o jogador desbloqueou a porta, se sim, abre a porta e move o elevador para baixo
