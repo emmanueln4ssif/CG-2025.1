@@ -5,7 +5,7 @@ import { OBJLoader } from '/build/jsm/loaders/OBJLoader.js';
 import { MTLLoader } from '/build/jsm/loaders/MTLLoader.js';
 import { getMaxSize } from "/libs/util/util.js";
 
-export function buildHangarPlatform(scene, sideSize, frontSize, height, position) {
+export function buildHangarPlatform(scene, sideSize, frontSize, height, position, collisionObjects) {
   const areaGroup = new THREE.Group();
   areaGroup.name = "Area3";
 
@@ -46,6 +46,13 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
       // Rotacionar se necessário (ajuste o ângulo conforme necessário)
       hangarModel.rotation.y = Math.PI / 2;
 
+      // Adicionar colisão para o hangar
+      hangarModel.traverse(function(node) {
+        if (node.isMesh) {
+          collisionObjects.push(node);
+        }
+      });
+
       areaGroup.add(hangarModel);
     },
     function (xhr) {
@@ -56,10 +63,11 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
     }
   );
 
+  const assetManager = [];
   // Carrega o avião (mantido do código original)
-  loadOBJFile('../assets/objects/', 'plane', 20.0, 0, true);
+  loadOBJFile('../assets/objects/', 'plane', 20.0, 0, true, collisionObjects);
 
-  function loadOBJFile(modelPath, modelName, desiredScale, angle, visibility) {
+  function loadOBJFile(modelPath, modelName, desiredScale, angle, visibility, collisionObjects) {
     var mtlLoader = new MTLLoader();
     mtlLoader.setPath(modelPath);
     mtlLoader.load(modelName + '.mtl', function (materials) {
