@@ -1,9 +1,9 @@
 // area3.js
 import * as THREE from 'three';
-import {GLTFLoader} from '/build/jsm/loaders/GLTFLoader.js';
-import { OBJLoader } from '/build/jsm/loaders/OBJLoader.js';
-import { MTLLoader } from '/build/jsm/loaders/MTLLoader.js';
-import { getMaxSize } from "/libs/util/util.js";
+import {GLTFLoader} from '../../build/jsm/loaders/GLTFLoader.js';
+import { OBJLoader } from '../../build/jsm/loaders/OBJLoader.js';
+import { MTLLoader } from '../../build/jsm/loaders/MTLLoader.js';
+import { getMaxSize } from "../../libs/util/util.js";
 
 export function buildHangarPlatform(scene, sideSize, frontSize, height, position, collisionObjects) {
   const areaGroup = new THREE.Group();
