@@ -5,7 +5,7 @@ import { OBJLoader } from '/build/jsm/loaders/OBJLoader.js';
 import { MTLLoader } from '/build/jsm/loaders/MTLLoader.js';
 import { getMaxSize } from "/libs/util/util.js";
 
-export function buildHangarPlatform(scene, sideSize, frontSize, height, position, collisionObjects) {
+export function buildHangarPlatform(scene, sideSize, frontSize, height, position, collisionObjects, player) {
   const areaGroup = new THREE.Group();
   areaGroup.name = "Area3";
 
@@ -40,10 +40,8 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
       });
 
       // Ajustar escala e posição do hangar
-      hangarModel.scale.set(2, 2, 2); // Ajuste esses valores conforme necessário
+      hangarModel.scale.set(2, 2, 2);
       hangarModel.position.set(position.x, height, position.z);
-      
-      // Rotacionar se necessário (ajuste o ângulo conforme necessário)
       hangarModel.rotation.y = Math.PI / 2;
 
       // Adicionar colisão para o hangar
@@ -53,7 +51,29 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
         }
       });
 
+      // Adiciona o hangar ao grupo da área
       areaGroup.add(hangarModel);
+
+      // Atualiza bounding box com base no modelo carregado
+      hangarBox.setFromObject(hangarModel);
+
+      // Criar a porta do hangar
+      const doorTexture = textureLoader.load('assets/door.jpg');
+      const doorGeometry = new THREE.BoxGeometry(0.5, 15, 25);
+      const doorMaterial = new THREE.MeshLambertMaterial({ map: doorTexture });
+      const hangarDoor = new THREE.Mesh(doorGeometry, doorMaterial);
+      doorTexture.wrapS = doorTexture.wrapT = THREE.RepeatWrapping;
+      doorTexture.repeat.set(3, 3);
+
+      hangarDoor.position.set(position.x - 15, height + 7.5, position.z - 18);
+      hangarDoor.rotation.y = Math.PI / 2;
+      
+      hangarDoor.castShadow = true;
+      hangarDoor.receiveShadow = true;
+      hangarDoor.name = "hangarDoor";
+      
+      collisionObjects.push(hangarDoor);
+      areaGroup.add(hangarDoor);
     },
     function (xhr) {
       console.log((xhr.loaded / xhr.total * 100) + '% carregado');
@@ -64,7 +84,6 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
   );
 
   const assetManager = [];
-  // Carrega o avião (mantido do código original)
   loadOBJFile('../assets/objects/', 'plane', 20.0, 0, true, collisionObjects);
 
   function loadOBJFile(modelPath, modelName, desiredScale, angle, visibility, collisionObjects) {
@@ -79,7 +98,6 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
       objLoader.load(modelName + ".obj", function (obj) {
         obj.visible = visibility;
         obj.name = modelName;
-        // Set 'castShadow' property for each children of the group
         obj.traverse(function (child) {
           if (child.isMesh) child.castShadow = true;
           if (child.material) child.material.side = THREE.DoubleSide;
@@ -90,8 +108,6 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
         obj.rotateY(THREE.MathUtils.degToRad(angle));
 
         obj.position.set(position.x, height + 0.5, position.z);
-
-        // Virar o avião para frente da porta
         obj.rotation.y = Math.PI / 2;
 
         scene.add(obj);
@@ -101,7 +117,7 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
   }
 
   function normalizeAndRescale(obj, newScale) {
-    var scale = getMaxSize(obj); // Available in 'utils.js'
+    var scale = getMaxSize(obj);
     obj.scale.set(newScale * (1.0 / scale),
       newScale * (1.0 / scale),
       newScale * (1.0 / scale));
@@ -109,7 +125,6 @@ export function buildHangarPlatform(scene, sideSize, frontSize, height, position
   }
 
   function fixPosition(obj) {
-    // Fix position of the object over the ground plane
     var box = new THREE.Box3().setFromObject(obj);
     if (box.min.y > 0)
       obj.translateY(-box.min.y);
