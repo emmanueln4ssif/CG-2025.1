@@ -38,7 +38,7 @@ const metalTextures = {
 };
 
 const floorMetalTextures = {
-  colorMap: loader.load('assets/textures/area2/floor/floor_color.png'),
+  colorMap: loader.load('assets/textures/area2/floor/floor_Color.png'),
   metalnessMap: loader.load('assets/textures/area2/floor/floor_Metalness.png'),
   displacementMap: loader.load('assets/textures/area2/floor/floor_Displacement.png'),
   normalMap: loader.load('assets/textures/area2/floor/floor_NormalGL.png')
