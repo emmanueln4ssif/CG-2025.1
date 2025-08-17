@@ -6,6 +6,7 @@ import { controls } from './player.js';
 import { Group } from '../../build/three.module.js';
 import { addGreekColumnsToPlatform, createGreekFrontColumns, buildPlatformArea1, pillarTextures } from './area1.js';
 import { buildPlatformWithElevator, createRepeatingMaterial } from './area2.js';
+import { buildArea4, updateWall } from './area4.js';
 
 
 export let elevatorBase, yellowKey, rectangleWithYellowKey, area2;
@@ -68,11 +69,8 @@ export function setupEnvironment(scene, collisionObjects, light) {
   const area3 = buildPlatform(scene, 100, 120, 4, { x: -150, y: 0, z: 150 }, 15, 8, 0.8, 0xC3D3F1);
   addPlatformToScene(scene, area3, collisionObjects);
 
-  // Área 4: Plataforma simples
-  const area4 = buildPlatform(scene, 100, 320, 4, { x: 10, y: 0, z: -150 }, 25, 8, 0.8, 0xB9D7A9);
-  area4.rotateY(-Math.PI);
-  area4.position.set(10, 0, -300);
-  addPlatformToScene(scene, area4, collisionObjects);
+  // Área 4: Muro
+  buildArea4(scene, collisionObjects); // Isso cria blueKey
 
   // Paredes
   addWallsAroundPlane(scene, collisionObjects, 495, 15, 5, 0x8B4513);

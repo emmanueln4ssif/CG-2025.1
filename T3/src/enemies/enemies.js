@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { LostSoul } from './lostSoul.js';
 import { Cacodemon } from './cacodemon.js'; // Descomente quando for adicionar
-import { camera } from '../main.js';
+import { camera,  scene, collisionObjects } from '../main.js';
+import { takeDamage, player } from '../player.js';
 
 export const allEnemies = [];
 const allEnemyProjectiles = [];
@@ -11,12 +12,6 @@ export function createHealthBar() {
     const barHeight = 0.2;
     const barWidth = 5;
 
-    // Fundo preto da barra
-    const bgBar = new THREE.Mesh(
-        new THREE.PlaneGeometry(barWidth + 0.1, barHeight + 0.1),
-        new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true })
-    );
-
     // Barra de vida (verde)
     const healthBarMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(barWidth, barHeight),
@@ -24,7 +19,6 @@ export function createHealthBar() {
     );
 
     const healthBar = new THREE.Group();
-    healthBar.add(bgBar);
     healthBar.add(healthBarMesh);
  
     // Adiciona uma referência à malha da vida para ser facilmente acessada depois
@@ -52,14 +46,14 @@ export function updateHealthBar(healthBar, hp, maxHp) {
 }
 
 // Função "Fábrica": Cria um inimigo do tipo e posição especificados
-export function createEnemy(type, position, scene, collisionObjects) {
+export function createEnemy(type, position, scene, collisionEnemies, playerObject) {
     let enemy;
     switch (type) {
         case 'lost_soul':
-            enemy = new LostSoul(position, scene, collisionObjects);
+            enemy = new LostSoul(position, scene, collisionEnemies, playerObject);
             break;
         case 'cacodemon':
-            enemy = new Cacodemon(position, scene, collisionObjects);
+            enemy = new Cacodemon(position, scene, collisionEnemies, playerObject);
             break;
         default:
             console.error("Tipo de inimigo desconhecido:", type);
@@ -69,7 +63,7 @@ export function createEnemy(type, position, scene, collisionObjects) {
 }
 
 // Função "Gerente": Atualiza todos os inimigos na cena
-export function updateEnemies(delta, playerObject, camera, scene, collisionObjects, playerBullets) {
+export function updateEnemies(delta, playerObject, camera, scene, collisionEnemies, playerBullets) {
     for (let i = allEnemies.length - 1; i >= 0; i--) {
         const enemy = allEnemies[i];
 
@@ -82,9 +76,9 @@ export function updateEnemies(delta, playerObject, camera, scene, collisionObjec
         // Verifica se o inimigo deve ser removido
         if (enemy.isReadyToRemove()) {
             scene.remove(enemy.mesh);
-            const indexInCollision = collisionObjects.indexOf(enemy.mesh);
+            const indexInCollision = collisionEnemies.indexOf(enemy.mesh);
             if (indexInCollision > -1) {
-                collisionObjects.splice(indexInCollision, 1);
+                collisionEnemies.splice(indexInCollision, 1);
             }
             allEnemies.splice(i, 1);
             continue;
@@ -128,25 +122,6 @@ function checkBulletCollision(enemy, playerBullets, scene) {
     }
 }
 
-export function hasLineOfSight(start, end, colliders, selfMesh) {
-    const direction = new THREE.Vector3().subVectors(end, start).normalize();
-    raycaster.set(start, direction);
-    const intersects = raycaster.intersectObjects(colliders, true);
-
-    for (const intersect of intersects) {
-        // Ignora a si mesmo
-        if (intersect.object === selfMesh || intersect.object.parent === selfMesh) {
-            continue;
-        }
-        // Se o primeiro obstáculo encontrado estiver mais perto que o jogador, não há linha de visão
-        if (intersect.distance < start.distanceTo(end)) {
-            return false;
-        }
-    }
-    // Se o loop terminar, significa que não há obstáculos no caminho
-    return true;
-}
-
 export function addEnemyProjectile(projectileData) {
     allEnemyProjectiles.push(projectileData);
 }
@@ -154,9 +129,12 @@ export function addEnemyProjectile(projectileData) {
 // Função para verificar se o jogador derrotou os inimigos de cada área
 // Retorna um objeto com as propriedades defeatedEnemiesArea1 e defeatedEnemiesArea2
 export function checkDefeatedEnemies(player) {
-    
     let hasLostSoul = false;
     let hasCacodemon = false;
+
+    // Reset temporário
+    player.defeatedEnemiesArea1 = false;
+    player.defeatedEnemiesArea2 = false;
 
     for (let enemy of allEnemies) {
         if (enemy.constructor.name === 'LostSoul') hasLostSoul = true;
@@ -166,51 +144,62 @@ export function checkDefeatedEnemies(player) {
     if (!hasLostSoul) player.defeatedEnemiesArea1 = true;
     if (!hasCacodemon) player.defeatedEnemiesArea2 = true;
 
-
-    //console.log("derrotados:");
-    //console.log("area 1:", player.defeatedEnemiesArea1);
-    //console.log("area 2:", player.defeatedEnemiesArea2);
-
     return { defeatedEnemiesArea1: player.defeatedEnemiesArea1, defeatedEnemiesArea2: player.defeatedEnemiesArea2 };
 }
 
-function updateAllEnemyProjectiles(delta, scene, playerObject, environmentObjects) {
+// Adicione essa função para atualizar os projéteis
+export function updateEnemyProjectiles(delta) {
+    // Itera pelo array de trás para frente para poder remover itens com segurança
     for (let i = allEnemyProjectiles.length - 1; i >= 0; i--) {
-        const projectileData = allEnemyProjectiles[i];
-        const projectile = projectileData.mesh;
+        const projData = allEnemyProjectiles[i];
+        const projectile = projData.mesh;
 
-        const moveStep = projectileData.direction.clone().multiplyScalar(projectileData.speed * delta);
+        const moveStep = projData.direction.clone().multiplyScalar(projData.speed * delta);
         projectile.position.add(moveStep);
-        
-        const playerPosition = playerObject.position;
-        const playerHitbox = new THREE.Box3(
-            new THREE.Vector3(playerPosition.x - 0.5, playerPosition.y - 2, playerPosition.z - 0.5),
-            new THREE.Vector3(playerPosition.x + 0.5, playerPosition.y + 2, playerPosition.z + 0.5)
-        );
+        projData.traveled += moveStep.length();
 
-        if (playerHitbox.containsPoint(projectile.position)) {
-            console.log("%cJOGADOR ATINGIDO!", "color: red; font-weight: bold;");
-            // TODO: Implementar a lógica de dano no jogador
-            scene.remove(projectile);
-            allEnemyProjectiles.splice(i, 1);
-            continue;
+        let shouldBeRemoved = false;
+
+        // 1. Verifica se viajou a distância máxima
+        if (projData.traveled >= projData.maxDistance) {
+            shouldBeRemoved = true;
         }
 
-        for(const obj of environmentObjects) {
-            if(obj === projectile || (obj.parent && obj.parent === projectile)) continue;
-            const box = new THREE.Box3().setFromObject(obj);
-            if(box.containsPoint(projectile.position)) {
-                scene.remove(projectile);
-                allEnemyProjectiles.splice(i, 1);
-                break;
+        const projBox = new THREE.Box3().setFromObject(projectile);
+
+        // 2. Verifica colisão com o ambiente (paredes, etc.)
+        if (!shouldBeRemoved) {
+            for (const obstacle of collisionObjects) {
+                // Ignora outros inimigos e a si mesmo
+                if (obstacle.userData.enemyInstance) continue;
+
+                const obstacleBox = new THREE.Box3().setFromObject(obstacle);
+                if (projBox.intersectsBox(obstacleBox)) {
+                    shouldBeRemoved = true;
+                    break;
+                }
             }
         }
-        if(!allEnemyProjectiles[i]) continue;
 
-        const traveled = projectile.position.distanceTo(projectileData.startPosition);
-        if (traveled >= projectileData.maxDistance) {
-            scene.remove(projectile);
-            allEnemyProjectiles.splice(i, 1);
+        // 3. Verifica colisão com o jogador
+        if (!shouldBeRemoved && player && player.mesh) { // Verifica se player.mesh existe
+            const playerBox = new THREE.Box3().setFromObject(player.mesh); 
+            if (projBox.intersectsBox(playerBox)) {
+                console.log("Projétil atingiu o jogador!");
+                takeDamage(projData.mesh.userData.damage);
+                shouldBeRemoved = true;
+            }
+        }
+
+        // 4. Se deve ser removido, limpa tudo da memória e da cena
+        if (shouldBeRemoved) {
+            // Remove a luz se ela existir
+            if(projectile.children.length > 0) {
+                const light = projectile.children[0];
+                projectile.remove(light);
+            }
+            scene.remove(projectile); // Remove da cena
+            allEnemyProjectiles.splice(i, 1); // Remove do array de gerenciamento
         }
     }
 }

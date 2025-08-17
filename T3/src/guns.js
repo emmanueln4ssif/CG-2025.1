@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {SpriteMixer} from "../../libs/sprites/SpriteMixer.js"; 
+import {SpriteMixer} from "../../../libs/sprites/SpriteMixer.js"; 
 
 const bullets = [];
 let isShooting = false;
@@ -7,23 +7,38 @@ let lastShotTime = 0;
 let fireRate = 500;
 const bulletSpeed = 30;
 const maxDistance = 100;
-let gun, crosshairElement;
-let chaingunSprite, shootAction;
+
+let crosshairElement;
+let shootAction;
 let weapons = {};
 let currentWeapon = 'launcher';
 
-function setupGun(camera) {
-   const gunGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 32);
-   const gunMaterial =  new THREE.MeshLambertMaterial({color: 0x555555});
-   gun = new THREE.Mesh(gunGeometry, gunMaterial);
-   gun.castShadow = true;
-   gun.receiveShadow = true;
-   gun.scale.set(2, 2, 2);
-   gun.position.set(0, -0.4, -1);
-   gun.rotation.set(Math.PI / 2, 0, 0);
-   camera.add(gun);
+// Sprites
+let chaingunSprite, launcherSprite;
+let launcherShootAction;
 
-   weapons.launcher = gun; 
+function setupLauncher(camera, spriteMixer) {
+   const loader = new THREE.TextureLoader();
+   loader.load('assets/rocketlauncher.png', (texture) => {
+      texture.minFilter = THREE.NearestFilter; 
+      texture.magFilter = THREE.NearestFilter;
+
+      launcherSprite = spriteMixer.ActionSprite(texture, 3, 1);
+      launcherSprite.scale.set(1.8, 1.2, 1);
+      launcherSprite.position.set(0, -0.9, -3.5);
+      launcherSprite.renderOrder = 999;
+      launcherSprite.material.depthTest = false;
+
+      launcherShootAction = spriteMixer.Action(launcherSprite, 250, 1, 1, 1, 2);
+      launcherSprite.setFrame(0,0);
+
+      const hud = new THREE.Object3D();
+      camera.add(hud);
+      hud.add(launcherSprite);
+
+      launcherSprite.visible = false;
+      weapons.launcher = launcherSprite;
+   });
 }
 
 function updateFireRate() {
@@ -46,8 +61,8 @@ function setupChaingun(camera, spriteMixer) {
       chaingunSprite.renderOrder = 999;
       chaingunSprite.material.depthTest = false;
 
-      shootAction = spriteMixer.Action(chaingunSprite, 1, 2, 100); 
-      chaingunSprite.setFrame(0);
+      shootAction = spriteMixer.Action(chaingunSprite, 100, 1, 1, 1, 2); 
+      chaingunSprite.setFrame(0,0);
 
       const hud = new THREE.Object3D();
       camera.add(hud);
@@ -59,21 +74,27 @@ function setupChaingun(camera, spriteMixer) {
 }
 
 function switchWeapon(to) {
-   if (gun) gun.visible = false;
    if (chaingunSprite) {
       chaingunSprite.visible = false;
       if (shootAction) shootAction.stop();
-      chaingunSprite.setFrame(0);
+      chaingunSprite.setFrame(0, 0);
+   }
+
+   if (launcherSprite) {
+      launcherSprite.visible = false;
+      if (launcherShootAction) launcherShootAction.stop();
+      launcherSprite.setFrame(0, 0);
    }
 
    currentWeapon = to;
    updateFireRate();
 
-   if (to === 'launcher' && gun) {
-      gun.visible = true;
+   if (to === 'launcher' && launcherSprite) {
+      launcherSprite.visible = true;
+      launcherSprite.setFrame(0, 0);
    } else if (to === 'chaingun' && chaingunSprite) {
       chaingunSprite.visible = true;
-      chaingunSprite.setFrame(0);
+      chaingunSprite.setFrame(0, 0);
    }
 }
 
@@ -92,24 +113,23 @@ function setupCrosshair() {
    document.body.appendChild(crosshairElement);
 }
 
-function performRaycastDamage(camera, collisionObjects) {
+function performRaycastDamage(camera, collisionObjects, damage) {
     const raycaster = new THREE.Raycaster();
     const direction = new THREE.Vector3();
     camera.getWorldDirection(direction);
     raycaster.set(camera.position, direction);
 
-    const intersects = raycaster.intersectObjects(collisionObjects, true); // <-- true para pegar os filhos também
+    const intersects = raycaster.intersectObjects(collisionObjects, true);
     if (intersects.length > 0) {
         let hitObject = intersects[0].object;
 
-        // Sobe na hierarquia até achar o userData.enemyInstance
         while (hitObject && !hitObject.userData.enemyInstance && hitObject.parent) {
             hitObject = hitObject.parent;
         }
 
         if (hitObject && hitObject.userData.enemyInstance) {
             const enemyInstance = hitObject.userData.enemyInstance;
-            enemyInstance.takeDamage(2);
+            enemyInstance.takeDamage(damage);
             console.log(`Acertou ${hitObject.name}, HP restante: ${enemyInstance.hp}`);
         } else {
             console.log("Acertou objeto sem enemyInstance");
@@ -117,44 +137,55 @@ function performRaycastDamage(camera, collisionObjects) {
     }
 }
 
-
-
-function shoot(scene, camera, collisionObjects) {
+function shoot(scene, camera, collisionEnemies) {
    if (currentWeapon === 'chaingun') {
       shootAction.playOnce();
-      performRaycastDamage(camera, collisionObjects);
-      return; // Não cria projétil visual.
+      performRaycastDamage(camera, collisionEnemies, 2);
+      return;
    }
 
-   // Apenas para o launcher:
-   const bulletGeometry = new THREE.SphereGeometry(0.5, 8, 8);
-   const bulletMaterial = new THREE.MeshLambertMaterial({color: 'white'});
-   const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
+   if (currentWeapon === 'launcher') {
+      // animação de disparo dos frames
+      launcherShootAction.playOnce();
+      performRaycastDamage(camera, collisionEnemies, 10);
 
-   bullet.castShadow = true;
-   bullet.receiveShadow = true;
-   bullet.userData.type = 'bullet';
-   bullet.userData.damage = 10; // Dano fixo para o launcher
+      // --- Rebote da arma ---
+      const originalY = launcherSprite.position.y;
+      launcherSprite.position.y -= 0.2; // recuo rápido
+      setTimeout(() => {
+         launcherSprite.position.y = originalY;
+         launcherSprite.setFrame(0, 0); // volta pro frame inicial
+      }, 200);
 
-   const gunWorldPosition = new THREE.Vector3();
-   gun.getWorldPosition(gunWorldPosition);
+      // --- Criação do projétil ---
+      const bulletGeometry = new THREE.SphereGeometry(0.5, 8, 8);
+      const bulletMaterial = new THREE.MeshLambertMaterial({ color: 'white' });
+      const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
 
-   const barrelOffset = new THREE.Vector3(0, 0, -0.1);
-   barrelOffset.applyQuaternion(gun.quaternion);
-   bullet.position.copy(gunWorldPosition).add(barrelOffset);
-   bullet.scale.set(1, 1, 1); 
+      bullet.castShadow = true;
+      bullet.receiveShadow = true;
+      bullet.userData.type = 'bullet';
+      bullet.userData.damage = 10;
 
-   const direction = new THREE.Vector3();
-   camera.getWorldDirection(direction);
+      const gunWorldPosition = new THREE.Vector3();
+      camera.getWorldPosition(gunWorldPosition);
 
-   bullets.push({
-      mesh: bullet,
-      direction: direction.clone().normalize(),
-      startPosition: bullet.position.clone()
-   });
+      bullet.position.copy(gunWorldPosition);
+      bullet.scale.set(1, 1, 1);
 
-   scene.add(bullet);
+      const direction = new THREE.Vector3();
+      camera.getWorldDirection(direction);
+
+      bullets.push({
+         mesh: bullet,
+         direction: direction.clone().normalize(),
+         startPosition: bullet.position.clone()
+      });
+
+      scene.add(bullet);
+   }
 }
+
 
 function checkBulletCollision(position, collisionObjects) {
    const bulletRadius = 0.05;
@@ -195,15 +226,19 @@ function updateBullets(clock, scene, collisionObjects) {
 function handleShootingState() {
    window.addEventListener('mousedown', () => {
     isShooting = true;
-});
+   });
 
-window.addEventListener('mouseup', () => {
+   window.addEventListener('mouseup', () => {
     isShooting = false;
     if (currentWeapon === 'chaingun' && shootAction) {
         shootAction.stop(); 
-        chaingunSprite.setFrame(0); 
+        chaingunSprite.setFrame(0,0); 
     }
-});
+    if (currentWeapon === 'launcher' && launcherShootAction) {
+        launcherShootAction.stop(); 
+        launcherSprite.setFrame(0,0); 
+    }
+   });
 }
 
 function canShootNow(currentTime) {
@@ -226,7 +261,7 @@ function setupWeaponSwitching() {
 }
 
 export {
-   setupGun,
+   setupLauncher,
    setupChaingun,
    setupCrosshair,
    shoot,

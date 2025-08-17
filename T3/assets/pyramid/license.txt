@@ -1,0 +1,11 @@
+Model Information:
+* title:	Pyramide Du Louvre Mini
+* source:	https://sketchfab.com/3d-models/pyramide-du-louvre-mini-95b6b33f6a85407d854397640e9875f0
+* author:	Le FabShop (https://sketchfab.com/lefabshop)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Pyramide Du Louvre Mini" (https://sketchfab.com/3d-models/pyramide-du-louvre-mini-95b6b33f6a85407d854397640e9875f0) by Le FabShop (https://sketchfab.com/lefabshop) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

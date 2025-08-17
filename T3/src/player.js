@@ -4,14 +4,55 @@ import { PointerLockControls } from '../../build/jsm/controls/PointerLockControl
 import KeyboardState from '../../libs/util/KeyboardState.js';
 import { updateCharacter } from './characterBody.js';
 import { isShooting } from './guns.js';
+import { updateHealthBar } from './enemies/enemies.js';
+import { playerMorreu } from './main.js';
 
 let controls, orbit, rendererElement;
 let keyboard = new KeyboardState();
+
+export function setupHealthBar(scene, camera) {
+   const barWidth = 0.1;
+   const barHeight = 1;
+
+   // fundo preto
+   const bgGeometry = new THREE.PlaneGeometry(barWidth, barHeight *1.02);
+   const bgMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+   const healthBarBg = new THREE.Mesh(bgGeometry, bgMaterial);
+
+   // barra vermelha
+   const barGeometry = new THREE.PlaneGeometry(barWidth, barHeight);
+   const barMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+   const healthBar = new THREE.Mesh(barGeometry, barMaterial);
+
+   const hud = new THREE.Group();
+   hud.add(healthBarBg);
+   hud.add(healthBar);
+
+   // ajusta posição na câmera
+   hud.position.set(-1.5, 0, -2); 
+
+   // deixa a barra vermelha ligeiramente na frente
+   healthBar.position.z = 0.01; 
+
+   // adiciona o HUD como filho da câmera
+   camera.add(hud);
+
+   player.healthBar = healthBar;
+}
+
+function updatePlayerHealthBar() {
+   if (player.healthBar == null) return;
+
+   const healthPercent = player.health / player.maxHealth;
+   player.healthBar.scale.y = healthPercent;  // encolhe verticalmente
+   player.healthBar.position.y = -(1 - healthPercent)/2; // ajusta pra não sair da base
+}
 
 export const player = {
    type: 'player',
    position: new THREE.Vector3(0, 8, 0),
    velocity: new THREE.Vector3(),
+   baseSpeed: 50,
    speed: 50,
    height: 4,
    radius: 0.5,
@@ -23,7 +64,15 @@ export const player = {
    moveBackward: false,
    moveLeft: false,
    moveRight: false,
-   jumpRequested: false
+   jumpRequested: false,
+   healthBarExist: false,
+   healthBar: null,
+
+   isRunning: false,
+   health: 200,
+   maxHealth: 200,
+
+   godLike: false
 };
 
 function setupPlayer(camera, scene, renderer) {
@@ -32,6 +81,11 @@ function setupPlayer(camera, scene, renderer) {
 
    controls = new PointerLockControls(camera, renderer.domElement);
    scene.add(controls.getObject());
+
+   if (!player.healthBarExist) {
+      setupHealthBar(scene, camera);
+      player.healthBarExist = true;
+   }
 
    rendererElement = renderer.domElement;
    setupPointerLock();
@@ -98,11 +152,20 @@ function setupPointerLock() {
                 player.canJump = false; // Impede pulos no ar
             }
             break;
+         case 16: // Shift
+            player.isRunning = value;
+            break;
     }
   }
 
 function updatePlayer(delta, collisionObjects) {
    if (!controls || !controls.isLocked) return;
+
+   if (player.isRunning) {
+      player.speed = player.baseSpeed * 2;
+   } else{
+      player.speed = player.baseSpeed;
+   }
 
    const moveDirection = new THREE.Vector3(
       (player.moveLeft ? -1 : 0) + (player.moveRight ? 1 : 0),
@@ -121,4 +184,23 @@ function updatePlayer(delta, collisionObjects) {
    updateCharacter(delta, player, controls, moveVector, collisionObjects);
 }
 
+export function takeDamage(amount) {
+   if (player.godLike) return; // se for invencível, não toma dano
+
+   player.health -= amount;
+   if (player.health < 0) player.health = 0;
+
+   updatePlayerHealthBar();
+
+   if (player.health <= 0) {
+      playerMorreu(); 
+
+      if (controls && controls.lock) {
+            controls.unlock();
+      }
+
+   }
+}
+
 export { setupPlayer, updatePlayer, controls };
+

@@ -205,6 +205,8 @@ export function checkKeyPickup(controls, platform, receivedKey, scene) {
 
         } else if (receivedKey.name === "yellowKey") {
             controls.getObject().hasYellowKey = true;
+        } else if (receivedKey.name === "blueKey") {
+            controls.getObject().hasBlueKey = true;
         }
 
         //Começa o processo de fading da chave
