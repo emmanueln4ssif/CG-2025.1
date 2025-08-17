@@ -151,6 +151,9 @@ function shoot(scene, camera, collisionEnemies) {
       if (chaingunSound && chaingunSound.isPlaying) chaingunSound.stop();
       if (chaingunSound) chaingunSound.play();
 
+      if (launcherSound && launcherSound.isPlaying) launcherSound.stop();
+      if (launcherSound) launcherSound.play();
+
       shootAction.playOnce();
       performRaycastDamage(camera, collisionEnemies, 2);
       return;

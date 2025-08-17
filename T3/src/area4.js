@@ -22,7 +22,7 @@ const wallTexture = {
 
 export function buildArea4(scene, collisionObjects) {
     // Chave azul
-    blueKey = buildKey({ x: 10, y: 1, z: -150 }, scene, "Blue", "0x0000ff", 50, collisionObjects);
+    blueKey = buildKey({ x: -135, y: 2, z: 150 }, scene, "Blue", "0x0000ff", 50, collisionObjects);
     blueKey.name = "blueKey";
 
     // --- Muro alto ---
