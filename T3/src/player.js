@@ -56,7 +56,7 @@ export const player = {
    speed: 50,
    height: 4,
    radius: 0.5,
-   jumpForce: 20,
+   jumpForce: 10,
    gravity: -10,
    isOnGround: false,
    canJump: true,

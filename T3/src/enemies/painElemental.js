@@ -5,8 +5,8 @@ import { collisionObjects, createLostSoulEnemies } from '../main.js';
 
 export class PainElemental {
     constructor(position, scene, collisionEnemies) {
-        this.hp = 80;
-        this.maxHp = 80;
+        this.hp = 100;
+        this.maxHp = 100;
         this.baseSpeed = 2.0;
         this.speed = 0;
         this.state = 'idle'; // Estados: 'idle', 'patrolling', 'attacking'
@@ -18,7 +18,6 @@ export class PainElemental {
         this.collisionEnemies = collisionEnemies;
         this.scene = scene;
         
-        // --- NOVAS PROPRIEDADES PARA CONTROLE DE ATAQUE ---
         this.lostSoulsSummoned = 0; // Contador para os Lost Souls invocados
         this.maxLostSouls = 5;      // Limite máximo de Lost Souls
         this.attackCooldown = 0;    // Tempo de espera entre invocações
@@ -122,7 +121,9 @@ export class PainElemental {
 
             // Verifica se o cooldown do ataque acabou
             if (this.attackCooldown <= 0) {
-                this.summonLostSoul();
+                // ✅ LINHA CORRIGIDA ✅
+                createLostSoulEnemies(this.mesh.position);
+                
                 this.lostSoulsSummoned++; // Incrementa o contador
                 this.attackCooldown = 2.5; // Define um cooldown de 2.5 segundos para a próxima invocação
             }
@@ -140,18 +141,6 @@ export class PainElemental {
         this.mesh.quaternion.slerp(this.targetRotation, 5 * delta);
         if (this.attackCooldown > 0) this.attackCooldown -= delta;
         if (this.healthBar && camera) this.healthBar.quaternion.copy(camera.quaternion);
-    }
-
-    // --- NOVA FUNÇÃO PARA INVOCAR UM ÚNICO LOST SOUL ---
-    summonLostSoul() {
-        if (!this.mesh) return;
-        
-        // Define uma posição inicial em frente ao Pain Elemental
-        const spawnOffset = new THREE.Vector3(0, 0, -4); // Ajuste a distância conforme necessário
-        spawnOffset.applyQuaternion(this.mesh.quaternion); // Rotaciona o offset para a direção do inimigo
-        const spawnPosition = this.mesh.position.clone().add(spawnOffset);
-        
-        createLostSoulEnemies(spawnPosition);
     }
 
     checkCollision(moveStep) {
