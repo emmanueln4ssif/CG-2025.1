@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { LostSoul } from './lostSoul.js';
-import { Cacodemon } from './cacodemon.js'; // Descomente quando for adicionar
+import { Cacodemon } from './cacodemon.js';
+import { PainElemental } from './painElemental.js';
 import { camera,  scene, collisionObjects } from '../main.js';
 import { takeDamage, player } from '../player.js';
 
@@ -50,10 +51,13 @@ export function createEnemy(type, position, scene, collisionEnemies, playerObjec
     let enemy;
     switch (type) {
         case 'lost_soul':
-            enemy = new LostSoul(position, scene, collisionEnemies, playerObject);
+            enemy = new LostSoul(position, scene, collisionEnemies);
             break;
         case 'cacodemon':
-            enemy = new Cacodemon(position, scene, collisionEnemies, playerObject);
+            enemy = new Cacodemon(position, scene, collisionEnemies);
+            break;
+        case 'painElemental':
+            enemy = new PainElemental(position, scene, collisionEnemies);
             break;
         default:
             console.error("Tipo de inimigo desconhecido:", type);
@@ -109,7 +113,7 @@ function checkBulletCollision(enemy, playerBullets, scene) {
             updateHealthBar(enemy.healthBar, enemy.hp - bulletMesh.userData.damage, enemy.maxHp);
             // Causa dano no inimigo
             if (enemy.takeDamage && bulletMesh.userData.damage) {
-                enemy.takeDamage(bulletMesh.userData.damage);
+               // enemy.takeDamage(bulletMesh.userData.damage);
             }
 
             // Remove a bala da cena e do array
@@ -151,55 +155,28 @@ export function checkDefeatedEnemies(player) {
 export function updateEnemyProjectiles(delta) {
     // Itera pelo array de trás para frente para poder remover itens com segurança
     for (let i = allEnemyProjectiles.length - 1; i >= 0; i--) {
-        const projData = allEnemyProjectiles[i];
-        const projectile = projData.mesh;
+        const proj = allEnemyProjectiles[i];
+        const moveStep = proj.direction.clone().multiplyScalar(proj.speed * delta);
+        proj.mesh.position.add(moveStep);
+        proj.traveled += moveStep.length();
 
-        const moveStep = projData.direction.clone().multiplyScalar(projData.speed * delta);
-        projectile.position.add(moveStep);
-        projData.traveled += moveStep.length();
+        let hit = false;
 
-        let shouldBeRemoved = false;
-
-        // 1. Verifica se viajou a distância máxima
-        if (projData.traveled >= projData.maxDistance) {
-            shouldBeRemoved = true;
+        // Se a distância for menor que 2, acerta. Simples e eficaz.
+        if (proj.mesh.position.distanceTo(camera.position) < 2) {
+            takeDamage(proj.mesh.userData.damage);
+            hit = true;
         }
 
-        const projBox = new THREE.Box3().setFromObject(projectile);
-
-        // 2. Verifica colisão com o ambiente (paredes, etc.)
-        if (!shouldBeRemoved) {
-            for (const obstacle of collisionObjects) {
-                // Ignora outros inimigos e a si mesmo
-                if (obstacle.userData.enemyInstance) continue;
-
-                const obstacleBox = new THREE.Box3().setFromObject(obstacle);
-                if (projBox.intersectsBox(obstacleBox)) {
-                    shouldBeRemoved = true;
-                    break;
-                }
-            }
+        // Se viajou a distância máxima, também desaparece
+        if (proj.traveled >= proj.maxDistance) {
+            hit = true;
         }
-
-        // 3. Verifica colisão com o jogador
-        if (!shouldBeRemoved && player && player.mesh) { // Verifica se player.mesh existe
-            const playerBox = new THREE.Box3().setFromObject(player.mesh); 
-            if (projBox.intersectsBox(playerBox)) {
-                console.log("Projétil atingiu o jogador!");
-                takeDamage(projData.mesh.userData.damage);
-                shouldBeRemoved = true;
-            }
-        }
-
-        // 4. Se deve ser removido, limpa tudo da memória e da cena
-        if (shouldBeRemoved) {
-            // Remove a luz se ela existir
-            if(projectile.children.length > 0) {
-                const light = projectile.children[0];
-                projectile.remove(light);
-            }
-            scene.remove(projectile); // Remove da cena
-            allEnemyProjectiles.splice(i, 1); // Remove do array de gerenciamento
+        
+        // Se acertou algo ou viajou demais, remove o projétil
+        if (hit) {
+            scene.remove(proj.mesh);
+            allEnemyProjectiles.splice(i, 1);
         }
     }
 }

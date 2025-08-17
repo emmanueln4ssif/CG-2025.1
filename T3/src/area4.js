@@ -1,8 +1,8 @@
 // area4.js
 import * as THREE from 'three';
-import { CSG } from '../../libs/other/CSGMesh.js';
+import { GLTFLoader } from '../../../build/jsm/loaders/GLTFLoader.js';
 import { buildKey } from './key.js';
-import {novosInimigos} from "./main.js";
+import { novosInimigos } from './main.js';
 
 export let area4Wall, blueKey;
 let lockerHole;
@@ -26,7 +26,7 @@ export function buildArea4(scene, collisionObjects) {
     blueKey.name = "blueKey";
 
     // --- Muro alto ---
-    const wallHeight = 20;
+    const wallHeight = 14;
     const wallMaterial = createRepeatingMaterial(20, 2, wallTexture);
     
     area4Wall = new THREE.Mesh(
@@ -43,9 +43,8 @@ export function buildArea4(scene, collisionObjects) {
     collisionObjects.push(area4Wall);
 
     // --- Buraco para a chave (círculo no centro do muro) ---
-    const holeGroup = new THREE.Group();
-    holeGroup.name = "lockerHole";
-    holeGroup.position.set(0, 2, -97); // Posição ajustada
+    lockerHole = new THREE.Group();
+    lockerHole.name = "lockerHole";
     
     // Furo circular (buraco)
     const holeGeometry = new THREE.CylinderGeometry(1.2, 1.2, 1, 32);
@@ -57,7 +56,7 @@ export function buildArea4(scene, collisionObjects) {
     
     const hole = new THREE.Mesh(holeGeometry, holeMaterial);
     hole.rotation.x = Math.PI / 2;
-    holeGroup.add(hole);
+    lockerHole.add(hole);
     
     // Anel de destaque
     const ringGeometry = new THREE.RingGeometry(1.3, 1.5, 32);
@@ -71,79 +70,45 @@ export function buildArea4(scene, collisionObjects) {
     const ring = new THREE.Mesh(ringGeometry, ringMaterial);
     ring.rotation.x = Math.PI / 2;
     ring.position.z = 0.1;
-    holeGroup.add(ring);
+    lockerHole.add(ring);
     
-    scene.add(holeGroup);
+    // Posiciona o lockerHole no mundo
+    lockerHole.position.set(0, 2, -97);
+    scene.add(lockerHole);
 
-    // --- Pirâmide com túneis usando CSG ---
-    createPyramidWithTunnels(scene, collisionObjects);
+    // --- Pirâmide com metade do tamanho ---
+    createPyramid(scene, collisionObjects);
 }
 
-// Função para criar a pirâmide com túneis
-function createPyramidWithTunnels(scene, collisionObjects) {
-    const pyramidSize = 20;
-    const pyramidHeight = 15;
-    const pyramidPosition = new THREE.Vector3(0, pyramidHeight/2, -150); // Mais perto do jogador
-    
-    // Criar base da pirâmide
-    const pyramidBase = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.01, pyramidSize, pyramidHeight, 4, 1),
-        new THREE.MeshStandardMaterial({ 
-            color: 0xFFFF00, // Amarelo mais vibrante
-            metalness: 0.3,
-            roughness: 0.7
-        })
-    );
-    pyramidBase.rotation.y = Math.PI / 4; // Rotacionar para alinhar as faces
-    
-    // Criar CSG
-    const pyramidCSG = CSG.fromMesh(pyramidBase);
-    
-    // Criar túneis
-    const tunnelRadius = 1.5;
-    const tunnelLength = pyramidSize * 2; // Comprimento suficiente para atravessar
-    
-    // Túneis laterais (4 direções)
-    for (let i = 0; i < 4; i++) {
-        const tunnel = new THREE.Mesh(
-            new THREE.CylinderGeometry(tunnelRadius, tunnelRadius, tunnelLength, 16),
-            new THREE.MeshBasicMaterial()
-        );
-        tunnel.rotation.y = i * Math.PI / 2;
-        tunnel.position.copy(pyramidPosition);
-        
-        const tunnelCSG = CSG.fromMesh(tunnel);
-        pyramidCSG.subtract(tunnelCSG);
-    }
-    
-    // Túnel vertical
-    const verticalTunnel = new THREE.Mesh(
-        new THREE.CylinderGeometry(tunnelRadius, tunnelRadius, pyramidHeight * 2, 16),
-        new THREE.MeshBasicMaterial()
-    );
-    verticalTunnel.rotation.x = Math.PI / 2;
-    verticalTunnel.position.copy(pyramidPosition);
-    verticalTunnel.position.y = pyramidHeight/2;
-    
-    const verticalTunnelCSG = CSG.fromMesh(verticalTunnel);
-    pyramidCSG.subtract(verticalTunnelCSG);
-    
-    // Converter para mesh
-    const pyramidMesh = CSG.toMesh(pyramidCSG, new THREE.Matrix4());
-    pyramidMesh.material = pyramidBase.material;
-    pyramidMesh.position.copy(pyramidPosition);
-    pyramidMesh.castShadow = true;
-    pyramidMesh.receiveShadow = true;
-    
-    scene.add(pyramidMesh);
-    collisionObjects.push(pyramidMesh);
+// Função para criar a pirâmide (tamanho reduzido pela metade)
+function createPyramid(scene, collisionObjects) {
+    const loader = new GLTFLoader();
+    loader.load('assets/pyramid/scene.gltf', (gltf) => {
+        const pyramid = gltf.scene;
+        pyramid.position.set(0, 0, -150);
+        pyramid.scale.set(1.5, 1.5, 1.5); // Metade do tamanho original (3/2=1.5)
+        scene.add(pyramid);
+
+        // Adiciona colisão para a pirâmide
+        pyramid.traverse((child) => {
+            if (child.isMesh) {
+                collisionObjects.push(child);
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+    });
 }
 
-// Função para atualizar a posição do muro
+// Função para atualizar a posição do muro e do locker
 export function updateWall(delta) {
-    if (!wallIsLowering || !area4Wall) return;
+    if (!wallIsLowering || !area4Wall || !lockerHole) return;
 
+    // Move o muro
     area4Wall.position.y -= wallLoweringSpeed * delta;
+    
+    // Move o locker junto com o muro
+    lockerHole.position.y = area4Wall.position.y - 8; // Mantém a posição relativa
 
     if (area4Wall.position.y <= wallTargetY) {
         area4Wall.position.y = wallTargetY;
@@ -153,8 +118,7 @@ export function updateWall(delta) {
 
 // Função para colocar a chave e abaixar o muro
 export function placeBlueKeyAndLowerWall(scene, controls) {
-    const lockerHole = scene.getObjectByName("lockerHole");
-    if (!lockerHole || !blueKey) return;
+    if (!lockerHole || !blueKey) return false;
 
     const blockPosition = new THREE.Vector3();
     lockerHole.getWorldPosition(blockPosition);
@@ -174,8 +138,12 @@ export function placeBlueKeyAndLowerWall(scene, controls) {
 
         // Inicia a descida do muro
         lowerWall();
+        
         novosInimigos();
+        
+        return true;
     }
+    return false;
 }
 
 // Função para iniciar a descida do muro

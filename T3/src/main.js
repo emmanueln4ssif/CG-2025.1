@@ -60,11 +60,21 @@ createEnemy('cacodemon', new THREE.Vector3(5, 25, 190), scene, collisionEnemies)
 createEnemy('cacodemon', new THREE.Vector3(40, 30, 145), scene, collisionEnemies);
 createEnemy('cacodemon', new THREE.Vector3(-25, 25, 180), scene, collisionEnemies);
 
+let inimigosCriados = false;
+
 export function novosInimigos() {
-   createEnemy('cacodemon', new THREE.Vector3(160, 25, 60), scene, collisionEnemies);
-   createEnemy('cacodemon', new THREE.Vector3(160, 25, 60), scene, collisionEnemies);
-   createEnemy('cacodemon', new THREE.Vector3(160, 25, 60), scene, collisionEnemies);
-   createEnemy('cacodemon', new THREE.Vector3(160, 25, 60), scene, collisionEnemies);
+   if (!inimigosCriados){
+      createEnemy('cacodemon', new THREE.Vector3(-160, 10, -135), scene, collisionEnemies);
+      createEnemy('cacodemon', new THREE.Vector3(-80, 10, -135), scene, collisionEnemies);
+      createEnemy('painElemental', new THREE.Vector3(-100, 25, -150), scene, collisionEnemies);
+      createEnemy('cacodemon', new THREE.Vector3(80, 10, -135), scene, collisionEnemies);
+      createEnemy('cacodemon', new THREE.Vector3(160, 10, -130), scene, collisionEnemies);
+      inimigosCriados = true;
+   }
+}
+
+export function createLostSoulEnemies(position) {
+   createEnemy('lost_soul', position);
 }
 
 // Redimensionamento da janela
