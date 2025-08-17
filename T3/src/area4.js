@@ -1,6 +1,6 @@
 // area4.js
 import * as THREE from 'three';
-import { GLTFLoader } from '../../../build/jsm/loaders/GLTFLoader.js';
+import { GLTFLoader } from '../../build/jsm/loaders/GLTFLoader.js';
 import { buildKey } from './key.js';
 import { novosInimigos } from './main.js';
 
