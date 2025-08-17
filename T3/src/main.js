@@ -99,23 +99,13 @@ function initGame() {
 
    setupEnvironment(scene, collisionObjects, sunLight);
    setupPlayer(camera, scene, renderer);
-   setupGun(camera);
-   setupWeaponSwitching();
+   //setupGun(camera);
    setupChaingun(camera, spriteMixer)
    setupCrosshair();
    handleShootingState();
    controls.getObject().hasKey; // Variável para controlar se o jogador pegou a chave e ainda não a usou
    setupWeaponSounds(camera);
 
-   // Setup dos inimigos
-   createEnemy('lost_soul', new THREE.Vector3(115, 15, 190), scene, collisionObjects);
-   createEnemy('lost_soul', new THREE.Vector3(205, 18, 190), scene, collisionObjects);
-   createEnemy('lost_soul', new THREE.Vector3(160, 8, 150), scene, collisionObjects);
-   createEnemy('lost_soul', new THREE.Vector3(120, 12, 120), scene, collisionObjects);
-   createEnemy('lost_soul', new THREE.Vector3(200, 14, 120), scene, collisionObjects);
-   createEnemy('cacodemon', new THREE.Vector3(5, 25, 190), scene, collisionObjects);
-   createEnemy('cacodemon', new THREE.Vector3(45, 25, 150), scene, collisionObjects);
-   createEnemy('cacodemon', new THREE.Vector3(-25, 25, 180), scene, collisionObjects);
    yellowKey.getWorldPosition(currentWorldPosition);
    render();
 }
