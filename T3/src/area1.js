@@ -4,8 +4,11 @@ import { createGroundPlaneXZ } from '../../libs/util/util.js';
 import { buildKey, createPlatformWithKey, updateObject, key, addRectangleWithKey } from './key.js';
 import { controls } from './player.js';
 import { BufferGeometry, Group } from '../../build/three.module.js';
+import { manager } from './loadingManager.js';
 
-const loader = new THREE.TextureLoader();
+
+//Carregar texturas:
+const loader = new THREE.TextureLoader(manager);
 
 export const pillarTextures = {
     colorMap: loader.load('assets/textures/area1/pillars/color.png'),
@@ -14,13 +17,14 @@ export const pillarTextures = {
     normalMap: loader.load('assets/textures/area1/pillars/normal.png')
 }
 
-export function buildPlatformArea1(scene, side_size, front_size, height, position, step_size, number_of_steps, step_depth, color) {
+export const areaTextures = {
+    colorMap: loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_Color.png'),
+    aoMap: loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_AmbientOcclusion.png'),
+    displacementMap: loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_Displacement.png'),
+    normalMap: loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_NormalGL.png')
+}
 
-    // Carrega texturas da plataforma
-    const colorMap = loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_Color.png');
-    const aoMap = loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_AmbientOcclusion.png');
-    const displacementMap = loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_Displacement.png');
-    const normalMap = loader.load('assets/textures/area1/dirty_stone/Rock051_1K-PNG_NormalGL.png');
+export function buildPlatformArea1(scene, side_size, front_size, height, position, step_size, number_of_steps, step_depth, color) {
 
     const stair_depth = number_of_steps * step_depth;
     const step_height = height / number_of_steps;
@@ -29,7 +33,7 @@ export function buildPlatformArea1(scene, side_size, front_size, height, positio
     const escadaGroup = new THREE.Group();
 
     // Constroi escadas
-    const escadaMaterial = createRepeatingMaterial(8, height / number_of_steps / 2, { colorMap, aoMap, displacementMap, normalMap });
+    const escadaMaterial = createRepeatingMaterial(8, height / number_of_steps / 2, areaTextures);
     for (let i = 0; i < number_of_steps; i++) {
         const degrau = new THREE.Mesh(
             new THREE.BoxGeometry(step_size, step_height, step_depth),
@@ -64,19 +68,20 @@ export function buildPlatformArea1(scene, side_size, front_size, height, positio
     ramp.visible = false;
 
 
-    //Geometrias da base da área
-    // Crie a geometria normalmente, sem modificar os UVs.
+    //Geometrias base da área, sem mudar uv
     const frontalGeometry = new THREE.BoxGeometry((front_size - step_size) / 2, height, depth);
     const traseiraGeometry = new THREE.BoxGeometry(front_size, height, side_size - stair_depth);
 
     // Cria os materiais para cada tipo de face, pensando na repetição
-    const sideMaterial = createRepeatingMaterial(1, 0.5, { colorMap, aoMap, displacementMap, normalMap });
-    const mainMaterial = createRepeatingMaterial(4, 0.25, { colorMap, aoMap, displacementMap, normalMap });
+
+    //Materiais da frente
+    const sideMaterial = createRepeatingMaterial(1, 0.5, areaTextures);
+    const mainMaterial = createRepeatingMaterial(4, 0.25, areaTextures);
 
     // Materiais da traseira
-    const backMaterial = createRepeatingMaterial(22.59, 8.43, { colorMap, aoMap, displacementMap, normalMap });
-    const sideTraseiraMaterial = createRepeatingMaterial(18, 0.5, { colorMap, aoMap, displacementMap, normalMap });
-    const frontTraseiraMaterial = createRepeatingMaterial(22.59, 0.5, { colorMap, aoMap, displacementMap, normalMap });
+    const backMaterial = createRepeatingMaterial(22.59, 8.43, areaTextures);
+    const sideTraseiraMaterial = createRepeatingMaterial(18, 0.5, areaTextures);
+    const frontTraseiraMaterial = createRepeatingMaterial(22.59, 0.5, areaTextures);
 
     // Cria um array de materiais na ordem correta do boxgeometry, para cada uma das faces
     const frontMaterials = [
@@ -148,8 +153,8 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
     const capitelMaterial = createRepeatingMaterial(1.5, 0.25, pillarTextures);
 
     // Ajuste de escala do displacement e bias
-    columnMaterial.displacementBias = -0.1; 
-    columnMaterial.displacementScale = 0.2; 
+    columnMaterial.displacementBias = -0.1;
+    columnMaterial.displacementScale = 0.2;
     beamMaterial.displacementScale = 0.2;
     beamMaterial.displacementBias = -0.1;
     topBeamMaterial.displacementScale = 0.2;
@@ -188,7 +193,7 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
             const overlap = 0.4;
             const baseGeometry = new THREE.CylinderGeometry(columnRadius * 1.3, columnRadius * 1.3, 1.5, 8, 4);
             const base = new THREE.Mesh(baseGeometry, capitelMaterial);
-            base.position.y = -0.75 + overlap; 
+            base.position.y = -0.75 + overlap;
             column.add(base);
         }
 
@@ -202,7 +207,7 @@ export function addGreekColumnsToPlatform(platformGroup, collisionObjects) {
     }
 
     const numFrontColumnsTotal = 10;
-    const escadaHalfWidth = 20; // ajuste para a largura da escada
+    const escadaHalfWidth = 20; 
 
     const numColumnsEachSide = numFrontColumnsTotal / 2;
 
@@ -300,8 +305,7 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
     const columnRadius = 4 * scale;
     const spacing = 30 * scale;
 
-    //Criar texturas
-    
+    //Criar materiais texturizados
     const columnMaterial = createRepeatingMaterial(1, 2, pillarTextures);
     const topBeamMaterial = createRepeatingMaterial(6, 0.25, pillarTextures);
     const roofMaterial = createRepeatingMaterial(3, 0.25, pillarTextures);
@@ -400,9 +404,13 @@ export function createGreekFrontColumns(scene, position, scale, collisionObjects
 
 }
 
+
+//-------------------------------------
 // Função para definir o quanto um material se repete:
+// -------------------------------------
+
 function createRepeatingMaterial(repeatX, repeatY, maps, displacement, displacementBias) {
-    // Função auxiliar para clonar e configurar cada textura
+    
     const setupTexture = (map) => {
         if (!map) return null;
         const texture = map.clone();

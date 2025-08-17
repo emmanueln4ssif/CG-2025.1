@@ -37,7 +37,45 @@ export class LostSoul {
         );
 
         this.loadModel(position, scene);
+        this.loadSounds();
     }
+
+    async loadSounds() {
+        const soundPaths = {
+            attack: [
+                './0_assetsT3/sounds/lostSoul/lost_soul_attack.wav',
+                '../0_assetsT3/sounds/lostSoul/lost_soul_attack.wav'
+            ],
+            injured: [
+                './0_assetsT3/sounds/lostSoul/injured.wav',
+                '../0_assetsT3/sounds/lostSoul/injured.wav'
+            ]
+        };
+
+        this.sounds = {};
+
+        const loadAudio = async (paths) => {
+            for (const path of paths) {
+                try {
+                    const response = await fetch(path);
+                    if (response.ok) {
+                        const audio = new Audio(path);
+                        audio.load(); // pré-carrega o som
+                        return audio;
+                    }
+                } catch (e) {
+                    // ignora e tenta o próximo caminho
+                }
+            }
+            console.error("Nenhum caminho válido encontrado para o áudio:", paths);
+            return null;
+        };
+
+        for (const key in soundPaths) {
+            this.sounds[key] = await loadAudio(soundPaths[key]);
+        }
+    }
+
 
     loadModel(position, scene) {
         const mtlLoader = new MTLLoader();
@@ -120,11 +158,16 @@ export class LostSoul {
             this.state = 'patrolling';
             this.speed = this.baseSpeed;
             this.chargeSpeed = this.baseChargeSpeed;
-        } 
+        }
     }
 
     takeDamage(amount) {
         if (this.isDying) return;
+
+        // Som de dano
+        this.sounds.injured.currentTime = 0;
+        this.sounds.injured.play();
+
         this.hp -= amount;
         if (this.hp < 0) this.hp = 0;
         updateHealthBar(this.healthBar, this.hp, this.maxHp);
@@ -136,6 +179,13 @@ export class LostSoul {
     }
 
     updatePatrolState(delta, playerObject) {
+        const playerPosition = playerObject.position;
+
+            // som do ataque
+            this.sounds.attack.currentTime = 0;
+            this.sounds.attack.play();
+
+            
         this.patrolTimer -= delta;
         if (this.patrolTimer <= 0) this.changePatrolDirection();
         const moveStep = this.patrolDirection.clone().multiplyScalar(this.speed * delta);

@@ -6,12 +6,13 @@ import { controls } from './player.js';
 import { Group } from '../../build/three.module.js';
 import { addGreekColumnsToPlatform, createGreekFrontColumns, buildPlatformArea1, pillarTextures } from './area1.js';
 import { buildPlatformWithElevator, createRepeatingMaterial } from './area2.js';
+import { manager } from './loadingManager.js';import { buildHangarPlatform } from './area3.js';
 import { buildArea4, updateWall } from './area4.js';
 
 
 export let elevatorBase, yellowKey, rectangleWithYellowKey, area2;
 
-const textureLoader = new THREE.TextureLoader();
+const textureLoader = new THREE.TextureLoader(manager);
 const wallTextures = {
   colorMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_Color.png'),
   aoMap: textureLoader.load('assets/textures/floor/plane/Tiles091_1K-PNG_AmbientOcclusion.png'),
@@ -65,8 +66,9 @@ export function setupEnvironment(scene, collisionObjects, light) {
   area2.name = "area2";
   addPlatformToScene(scene, area2, collisionObjects);
 
-  // Área 3: Plataforma simples
-  const area3 = buildPlatform(scene, 100, 120, 4, { x: -150, y: 0, z: 150 }, 15, 8, 0.8, 0xC3D3F1);
+  // Área 3: Plataforma com hangar
+  const area3 = buildHangarPlatform(scene, 100, 120, 0.5, { x: -150, y: 0, z: 150 }, collisionObjects);
+
   addPlatformToScene(scene, area3, collisionObjects);
 
   // Área 4: Muro

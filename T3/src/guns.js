@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import {SpriteMixer} from "../../libs/sprites/SpriteMixer.js"; 
+import { SpriteMixer } from "../../libs/sprites/SpriteMixer.js";
+import { manager } from './loadingManager.js';
 
 const bullets = [];
 let isShooting = false;
@@ -12,6 +13,13 @@ let crosshairElement;
 let shootAction;
 let weapons = {};
 let currentWeapon = 'launcher';
+
+const hud = new THREE.Group();
+hud.renderOrder = 999;
+hud.frustumCulled = false;
+
+const soundLoader = new THREE.AudioLoader();
+let chaingunSound, launcherSound;
 
 // Sprites
 let chaingunSprite, launcherSprite;
@@ -50,21 +58,20 @@ function updateFireRate() {
 }
 
 function setupChaingun(camera, spriteMixer) {
-   const loader = new THREE.TextureLoader();
+   const loader = new THREE.TextureLoader(manager);
    loader.load('assets/chaingun.png', (texture) => {
-      texture.minFilter = THREE.NearestFilter; 
+      texture.minFilter = THREE.NearestFilter;
       texture.magFilter = THREE.NearestFilter;
-      
+
       chaingunSprite = spriteMixer.ActionSprite(texture, 3, 1);
       chaingunSprite.scale.set(1.5, 0.9, 1);
       chaingunSprite.position.set(0, -1.3, -3.5);
       chaingunSprite.renderOrder = 999;
       chaingunSprite.material.depthTest = false;
 
-      shootAction = spriteMixer.Action(chaingunSprite, 100, 1, 1, 1, 2); 
-      chaingunSprite.setFrame(0,0);
+      shootAction = spriteMixer.Action(chaingunSprite, 100, 0, 1, 0, 2);
+      chaingunSprite.setFrame(0, 0);
 
-      const hud = new THREE.Object3D();
       camera.add(hud);
       hud.add(chaingunSprite);
 
@@ -119,13 +126,14 @@ function performRaycastDamage(camera, collisionObjects, damage) {
     camera.getWorldDirection(direction);
     raycaster.set(camera.position, direction);
 
-    const intersects = raycaster.intersectObjects(collisionObjects, true);
-    if (intersects.length > 0) {
-        let hitObject = intersects[0].object;
+   const intersects = raycaster.intersectObjects(collisionObjects, true); // <-- true para pegar os filhos também
+   if (intersects.length > 0) {
+      let hitObject = intersects[0].object;
 
-        while (hitObject && !hitObject.userData.enemyInstance && hitObject.parent) {
-            hitObject = hitObject.parent;
-        }
+      // Sobe na hierarquia até achar o userData.enemyInstance
+      while (hitObject && !hitObject.userData.enemyInstance && hitObject.parent) {
+         hitObject = hitObject.parent;
+      }
 
         if (hitObject && hitObject.userData.enemyInstance) {
             const enemyInstance = hitObject.userData.enemyInstance;
@@ -139,6 +147,10 @@ function performRaycastDamage(camera, collisionObjects, damage) {
 
 function shoot(scene, camera, collisionEnemies) {
    if (currentWeapon === 'chaingun') {
+
+      if (chaingunSound && chaingunSound.isPlaying) chaingunSound.stop();
+      if (chaingunSound) chaingunSound.play();
+
       shootAction.playOnce();
       performRaycastDamage(camera, collisionEnemies, 2);
       return;
@@ -225,7 +237,7 @@ function updateBullets(clock, scene, collisionObjects) {
 
 function handleShootingState() {
    window.addEventListener('mousedown', () => {
-    isShooting = true;
+      isShooting = true;
    });
 
    window.addEventListener('mouseup', () => {
@@ -260,6 +272,43 @@ function setupWeaponSwitching() {
    });
 }
 
+async function setupWeaponSounds(camera) {
+   const listener = new THREE.AudioListener();
+   camera.add(listener);
+
+   chaingunSound = new THREE.Audio(listener);
+   launcherSound = new THREE.Audio(listener);
+
+   const loadBufferWithFallback = async (paths, audio) => {
+      for (const path of paths) {
+         try {
+            const response = await fetch(path);
+            if (response.ok) {
+               soundLoader.load(path, (buffer) => {
+                  audio.setBuffer(buffer);
+                  audio.setLoop(false);
+                  audio.setVolume(0.5);
+               });
+               return;
+            }
+         } catch (e) {
+         }
+      }
+      console.error("Nenhum caminho válido encontrado para o áudio:", paths);
+   };
+
+   await loadBufferWithFallback([
+      './0_assetsT3/sounds/chaingunFiring.wav',
+      '../0_assetsT3/sounds/chaingunFiring.wav'
+   ], chaingunSound);
+
+   await loadBufferWithFallback([
+      './0_assetsT3/sounds/rocketFiring.wav',
+      '../0_assetsT3/sounds/rocketFiring.wav'
+   ], launcherSound);
+}
+
+
 export {
    setupLauncher,
    setupChaingun,
@@ -275,5 +324,6 @@ export {
    bullets,
    updateFireRate,
    currentWeapon,
-   shootAction
+   shootAction,
+   setupWeaponSounds
 };
