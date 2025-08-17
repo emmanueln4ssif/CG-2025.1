@@ -29,8 +29,56 @@ export class Cacodemon {
         this.targetRotation = new THREE.Quaternion();
         
         this.detectionDistance = 45;
-        
+                this.loadSounds();
         this.loadModel(position);
+    }
+
+    async loadSounds() {
+        const soundPaths = {
+            attack: [
+                './0_assetsT3/sounds/cacoDemon/cacodemonAttack.wav',
+                '../0_assetsT3/sounds/cacoDemon/cacodemonAttack.wav'
+            ],
+            injured: [
+                './0_assetsT3/sounds/cacoDemon/cacodemonInjured.wav',
+                '../0_assetsT3/sounds/cacoDemon/cacodemonInjured.wav'
+            ],
+            death: [
+                './0_assetsT3/sounds/cacoDemon/cacodemonDeath.wav',
+                '../0_assetsT3/sounds/cacoDemon/cacodemonDeath.wav'
+            ],
+            nearby: [
+                './0_assetsT3/sounds/cacoDemon/cacodemonNearby.wav',
+                '../0_assetsT3/sounds/cacoDemon/cacodemonNearby.wav'
+            ],
+            sight: [
+                './0_assetsT3/sounds/cacoDemon/cacodemonSight.wav',
+                '../0_assetsT3/sounds/cacoDemon/cacodemonSight.wav'
+            ]
+        };
+
+        this.sounds = {};
+
+        const loadAudio = async (paths) => {
+            for (const path of paths) {
+                try {
+                    const response = await fetch(path);
+                    if (response.ok) {
+                        const audio = new Audio(path);
+                        audio.load(); // pré-carrega o som
+                        return audio;
+                    }
+                } catch (e) {
+                    // ignora e tenta o próximo caminho
+                }
+            }
+            console.error("Nenhum caminho válido encontrado para o áudio:", paths);
+            return null;
+        };
+
+        for (const key in soundPaths) {
+            this.sounds[key] = await loadAudio(soundPaths[key]);
+        }
     }
 
     loadModel(position) {
@@ -174,11 +222,15 @@ export class Cacodemon {
         if (this.hp <= 0) {
             this.isDying = true;
             this.state = 'dying';
+            this.sounds.death.play();
             if (this.healthBar) this.mesh.remove(this.healthBar);
+        } else {
+            this.sounds.injured.play();
         }
     }
 
     shootProjectile(playerPosition) {
+        this.sounds.attack.play();
         const projectile = new THREE.Mesh(
             new THREE.SphereGeometry(0.4, 16, 16),
             new THREE.MeshBasicMaterial({ color: 0xff2222 })

@@ -1,0 +1,108 @@
+body, html {
+	width: 100%;
+	height: 100%;   
+   margin: 0px;
+   overflow: hidden;
+}
+
+#loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('assets/pictures/loading-screen-bg.png') no-repeat center center fixed;
+  background-size: cover;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  font-family: "Courier New", monospace;
+  color: #ff6600; /* cor de texto DOOM */
+  opacity: 1; /* Inicial totalmente visível */
+  transition: opacity 0.25s ease; /* Transição suave */
+}
+
+/* Classe para esmaecer */
+.fade-out {
+  opacity: 0;
+}
+
+#loading-screen::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.2); /* preto leve */
+  backdrop-filter: blur(4px); /* blur leve */
+  z-index: -1; /* atrás do conteúdo */
+}
+
+#loading-bar-container {
+  width: 60%;
+  height: 30px;
+  background-color: #222; /* fundo escuro */
+  border: 3px solid #ff3300; /* contorno estilo DOOM */
+  position: relative;
+  box-shadow: 0 0 10px #ff3300 inset;
+}
+
+#doom-icon {
+  width: 100px;  /* tamanho do ícone */
+  margin-bottom: 100px;
+  animation: pulse 1s infinite alternate; /* efeito de pulsação */
+}
+
+#loading-bar {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(to right, #ff0000, #ff9900);
+  box-shadow: 0 0 10px #ff6600 inset;
+  transition: width 0.3s ease-out;
+}
+
+#loading-text {
+  margin-top: 15px;
+  font-size: 20px;
+  letter-spacing: 2px;
+}
+
+#start-button {
+  margin-top: 25px;
+  padding: 10px 20px;
+  font-size: 18px;
+  font-weight: bold;
+  color: rgb(187, 187, 187);
+  background-color: #ff3300;
+  border: 2px solid #ff6600;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-family: "Courier New", monospace;
+  animation: pulse 0.5s infinite alternate;
+}
+
+#start-button:hover {
+  background-color: #ff6600;
+}
+
+/* Pulsação do ícone */
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.1); opacity: 1; }
+}
+
+@keyframes glitchMove {
+  0% { transform: translateX(0) skewX(0deg); }
+  25% { transform: translateX(-3px) skewX(-5deg); }
+  50% { transform: translateX(2px) skewX(3deg); }
+  75% { transform: translateX(-2px) skewX(-2deg); }
+  100% { transform: translateX(0) skewX(0deg); }
+}
+
+
+
+
+

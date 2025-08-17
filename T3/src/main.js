@@ -1,23 +1,42 @@
 import * as THREE from 'three';
 import { Clock } from 'three';
-import { initRenderer, initCamera, initDefaultBasicLight, setDefaultMaterial, onWindowResize, createGroundPlaneXZ } from "../../libs/util/util.js";
+import { initRenderer, initCamera, initDefaultBasicLight, setDefaultMaterial, onWindowResize, createGroundPlaneXZ, InfoBox } from "../../libs/util/util.js";
 import { setupEnvironment } from './environment.js';
 import { key, platform, checkKeyPickup, updatePlatformMovement, raisePlatformTo, yellowKey, redKey } from './key.js';
 import { setupHealthBar, setupPlayer, updatePlayer, controls, player } from './player.js';
-import { bullets, setupLauncher, shootAction, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired, setupChaingun, setupWeaponSwitching, updateFireRate, currentWeapon } from './guns.js';
+import { bullets, setupLauncher, shootAction, setupCrosshair, shoot, updateBullets, handleShootingState, canShootNow, markShotFired, setupChaingun, setupWeaponSwitching, updateFireRate, currentWeapon, setupWeaponSounds } from './guns.js';
 import { placeKeyAndUnlockDoor, openDoor, updateDoor, updateElevator, isPlayerOnTop, elevatorState, yellowKeyPlatform, canUseElevator } from './area2.js';
 import { area4Wall, blueKey, updateWall, placeBlueKeyAndLowerWall } from './area4.js'
 import { sunLight, ambientLight } from './light.js';
 import { createEnemy, updateEnemies, allEnemies, checkDefeatedEnemies, updateEnemyProjectiles } from './enemies/enemies.js';
 import { SpriteMixer } from "../../libs/sprites/SpriteMixer.js";
-import {CubeTextureLoaderSingleFile} from "../../libs/util/CubeTextureLoaderSingleFile.js";
-// --- Cena Básica ---
+import { CubeTextureLoaderSingleFile } from "../../libs/util/CubeTextureLoaderSingleFile.js";
+import { manager } from './loadingManager.js';
+import { openHangarDoor, hangarDoorIsOpen, userIsOnHangar } from './area3.js';
+
+//
 export let scene = new THREE.Scene()
+// Redimensionamento da janela
+window.addEventListener('resize', () => onWindowResize(camera, renderer), false);
+
+// -- Elevador ---
+export let elevatorBase = scene.getObjectByName("elevatorBase"); // atribuído ao construir a plataforma
+export let elevatorTargetY = 0; // posição alvo inicial do elevador
+export let elevatorMoving = false; // variável para controlar se o elevador está se movendo
+export let elevatorGoingDown = false; // variável para controlar se o elevador está indo para baixo
+export let elevatorGoingUp = false; // variável para controlar se o elevador está indo para cima
+export let elevatorWaiting = false; // variável para controlar se o elevador está esperando
+
+//Variáveis de ambiente
+export let camera = initCamera(new THREE.Vector3(0.0, 0.0, -10));
 let renderer = initRenderer();
+const clock = new Clock();
+let collisionObjects = [];
+let spriteMixer = SpriteMixer();
+let cubeMapTexture = new CubeTextureLoaderSingleFile(manager).loadSingle('assets/textures/skybox/sky01.png', 1);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-//renderer.setClearColor("rgb(8, 79, 150)");
-
+const currentWorldPosition = new THREE.Vector3();
 // GARANTE QUE TODOS OS OBJETOS USAM SOMBRA
 scene.traverse(obj => {
    if (obj.isMesh) {
@@ -25,21 +44,10 @@ scene.traverse(obj => {
       obj.receiveShadow = true;
    }
 });
-
-let cubeMapTexture = new CubeTextureLoaderSingleFile().loadSingle('assets/textures/skybox/sky01.png', 1);
 scene.background = cubeMapTexture;
-
-//Luzes
 scene.add(ambientLight);
 scene.add(sunLight);
-
-export let camera = initCamera(new THREE.Vector3(0.0, 0.0, -10));
-const clock = new Clock();
-let spriteMixer = SpriteMixer();
-
-let collisionObjects = [];
 let collisionEnemies = [];
-setupEnvironment(scene, collisionObjects, sunLight);
 
 // Setup do personagem e câmera
 setupPlayer(camera, scene, renderer);
@@ -84,25 +92,33 @@ window.addEventListener('resize', () => onWindowResize(camera, renderer), false)
 let keyFading = false; // Variável para controlar o desvanecimento da chave
 let keyFadeSpeed = 0.02; // Velocidade de desvanecimento da chave
 let emissiveBoost = 0.05; // Intensidade do brilho da chave
-controls.getObject().hasKey; // Variável para controlar se o jogador pegou a chave e ainda não a usou
 let doorIsOpening = false; // Variável para controlar se a porta está abrindo
 let platformKey1Raised = false; // Variável para controlar se a plataforma com a chave vermelha já foi levantada
 let platformKey2Raised = false; // Variável para controlar se a plataforma com a chave amarela já foi levantada
 let doorIsOpen = false;
-
-// -- Elevador ---
-export let elevatorBase = scene.getObjectByName("elevatorBase"); // atribuído ao construir a plataforma
-export let elevatorTargetY = 0; // posição alvo inicial do elevador
-export let elevatorMoving = false; // variável para controlar se o elevador está se movendo
-export let elevatorGoingDown = false; // variável para controlar se o elevador está indo para baixo
-export let elevatorGoingUp = false; // variável para controlar se o elevador está indo para cima
-export let elevatorWaiting = false; // variável para controlar se o elevador está esperando
-
 const desiredWorldY = 40;
 
-const currentWorldPosition = new THREE.Vector3();
-yellowKey.getWorldPosition(currentWorldPosition);
+/// Elementos do HTML
+const loadingText = document.getElementById("loading-text");
+const startButton = document.getElementById("start-button");
+const loadingScreen = document.getElementById("loading-screen");
 
+
+function initGame() {
+
+   setupEnvironment(scene, collisionObjects, sunLight);
+   setupPlayer(camera, scene, renderer);
+   //setupGun(camera);
+   setupChaingun(camera, spriteMixer)
+   setupCrosshair();
+   handleShootingState();
+   controls.getObject().hasKey; // Variável para controlar se o jogador pegou a chave e ainda não a usou
+   setupWeaponSounds(camera);
+
+   yellowKey.getWorldPosition(currentWorldPosition);
+   render();
+}
+showInformation();
 // --- Renderização ---
 function render() {
    const delta = Math.min(clock.getDelta(), 0.1);
@@ -112,11 +128,6 @@ function render() {
 
    // Tiro
    updateFireRate(); // Atualiza a taxa de disparo com base na arma atual
-   // const currentTime = performance.now();
-   // if (canShootNow(currentTime)) {
-   //    shoot(scene, camera);
-   //    markShotFired(currentTime);
-   // }
 
    const deltaMs = delta * 1000; // converter para milissegundos
 
@@ -142,13 +153,13 @@ function render() {
    updateEnemies(delta, controls.getObject(), camera, scene, collisionObjects, bullets);
 
    // Atualização da porta da área 2
-   updateDoor(scene); 
+   updateDoor(scene);
 
    // Atualização do elevador da área 2
-   updateElevator(); 
+   updateElevator();
 
    // Atualização da plataforma com as chaves vermelha e amarela
-   updatePlatformMovement(); 
+   updatePlatformMovement();
 
    //Verifica se os inimigos de cada uma das areas foi derrotado
    const checkDefeated = checkDefeatedEnemies(controls.getObject());
@@ -192,6 +203,12 @@ function render() {
    if (controls.getObject().hasRedKey) {
       placeKeyAndUnlockDoor(scene, controls);
    }
+
+   console.log("Tem chave amarela? ", controls.getObject().hasYellowKey);
+   if(controls.getObject().hasYellowKey) {
+      openHangarDoor(scene, controls);
+   }
+   
 
    // Verifica se o jogador desbloqueou a porta, se sim, abre a porta e move o elevador para baixo
    if (controls.getObject().hasRedKey && controls.getObject().unlockedDoor && !doorIsOpening && !doorIsOpen) {
@@ -239,7 +256,7 @@ function render() {
    //Define comportamento do elevador acaso o usuário caia da plataforma e precise voltar para o topo
    const isElevatorAtTop = Math.abs(elevatorState.base.position.y - (elevatorState.base.geometry.parameters.height / 2)) < 0.05;
 
-     //Se o elevador está no topo, parado, e o jogador está no chão
+   //Se o elevador está no topo, parado, e o jogador está no chão
    if (isElevatorAtTop && !elevatorState.moving && controls.getObject().position.y < 2 && doorIsOpen) {
       elevatorState.targetY = - (elevatorState.base.geometry.parameters.height / 2) + 0.1;
       elevatorState.moving = true;
@@ -318,8 +335,70 @@ export function playerMorreu() {
     updateAllEnemyProjectiles(delta, scene, player, environmentObjects);
 }
 
-// Iniciar o loop de renderização
-render();
+let backgroundMusic;
+let isMusicPlaying = true;
+
+const listener = new THREE.AudioListener();
+camera.add(listener); // Adicione o listener na câmera!
+
+const audioLoader = new THREE.AudioLoader(manager);
+backgroundMusic = new THREE.Audio(listener);
+
+
+function showInformation() {
+   // Use this to show information onscreen
+   let controls = new InfoBox();
+   controls.add("Pressione Q para ligar/desligar a música de fundo");
+   controls.addParagraph();
+   controls.show();
+   controls.infoBox.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+}
+
+manager.onProgress = (url, itemsLoaded, itemsTotal) => {
+   const loadingBar = document.getElementById("loading-bar");
+   const loadingText = document.getElementById("loading-text");
+
+   const progressPercent = (itemsLoaded / itemsTotal) * 100;
+   loadingBar.style.width = progressPercent + "%";
+
+   loadingText.innerText = `LOADING GAME... ${Math.round(progressPercent)}%`;
+};
+
+manager.onLoad = () => {
+   const startButton = document.getElementById("start-button");
+   startButton.style.display = "inline-block";
+
+   startButton.addEventListener("click", () => {
+      const loadingScreen = document.getElementById("loading-screen");
+      loadingScreen.classList.add("fade-out");
+      setTimeout(() => {
+         loadingScreen.remove();
+         initGame();
+
+         audioLoader.load('../0_assetsT3/sounds/doom.mp3', function (buffer) {
+            backgroundMusic.setBuffer(buffer);
+            backgroundMusic.setLoop(true);
+            backgroundMusic.setVolume(0.5);
+            backgroundMusic.play();
+         });
+
+         window.addEventListener('keydown', function (event) {
+            if (event.code === 'KeyQ') {
+               if (isMusicPlaying) {
+                  backgroundMusic.pause();
+               } else {
+                  backgroundMusic.play();
+               }
+               isMusicPlaying = !isMusicPlaying;
+            }
+         });
+
+      }, 250);
+   });
+};
+
+
+
 
 export {collisionObjects};
 

@@ -1,0 +1,11 @@
+Model Information:
+* title:	Daily News Hangar at Zahns Airport
+* source:	https://sketchfab.com/3d-models/daily-news-hangar-at-zahns-airport-fe90df586a644e3186080433a9c44135
+* author:	Charlie (https://sketchfab.com/charles.jackson)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Daily News Hangar at Zahns Airport" (https://sketchfab.com/3d-models/daily-news-hangar-at-zahns-airport-fe90df586a644e3186080433a9c44135) by Charlie (https://sketchfab.com/charles.jackson) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

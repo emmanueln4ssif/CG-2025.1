@@ -6,7 +6,7 @@ import {scene} from './main.js';
 export const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 
 //Luz principal com sombras
-export const sunLight = new THREE.DirectionalLight(0xffffff, 3);
+export let sunLight = new THREE.DirectionalLight(0xffffff, 3);
 sunLight.position.set(-100, 170, -100);
 sunLight.castShadow = true;
 

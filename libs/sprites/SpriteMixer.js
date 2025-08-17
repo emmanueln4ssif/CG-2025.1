@@ -242,7 +242,7 @@ export function SpriteMixer() {
 		offsetTexture( actionSprite ) ;
 
 		actionSprites.push( actionSprite );
-
+		
 		return actionSprite ;
 	};
 

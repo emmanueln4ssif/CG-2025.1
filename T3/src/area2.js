@@ -4,6 +4,37 @@ import { createGroundPlaneXZ } from '../../libs/util/util.js';
 import { buildKey, createPlatformWithKey, updateObject, key, addRectangleWithKey } from './key.js';
 import { controls } from './player.js';
 import { Group } from '../../build/three.module.js';
+import { manager } from './loadingManager.js';
+
+// Sons
+let doorSound, elevatorSound;
+
+async function loadSound(paths) {
+  for (const path of paths) {
+    try {
+      const response = await fetch(path);
+      if (response.ok) {
+        return new Audio(path);
+      }
+    } catch (e) {
+    }
+  }
+  console.error("Nenhum caminho válido encontrado para o som:", paths);
+  return null;
+}
+
+(async () => {
+  doorSound = await loadSound([
+    './0_assetsT3/sounds/doorOpening.wav',
+    '../0_assetsT3/sounds/doorOpening.wav'
+  ]);
+
+  elevatorSound = await loadSound([
+    './0_assetsT3/sounds/plataformaMovendo.wav',
+    '../0_assetsT3/sounds/plataformaMovendo.wav'
+  ]);
+})();
+
 
 export const elevatorState = {
   moving: false,
@@ -26,9 +57,10 @@ let keyFadeSpeed = 0.02;
 
 let lastElevatorUse = 0;
 const elevatorCooldown = 5000;
-const loader = new THREE.TextureLoader();
+const loader = new THREE.TextureLoader(manager);
 
-//TEXTURAS DE METAL:
+
+// TEXTURAS ---------------------------------------------------------------------------------------
 const metalTextures = {
   colorMap: loader.load('assets/textures/area2/metal/MetalPlates001_1K-PNG_Color.png'),
   metalnessMap: loader.load('assets/textures/area2/metal/MetalPlates001_1K-PNG_Metalness.png'),
@@ -37,10 +69,9 @@ const metalTextures = {
 };
 
 const floorMetalTextures = {
-  colorMap: loader.load('assets/textures/area2/floor/floor_color.png'),
+  colorMap: loader.load('assets/textures/area2/floor/floor_Color.png'),
   metalnessMap: loader.load('assets/textures/area2/floor/floor_Metalness.png'),
   displacementMap: loader.load('assets/textures/area2/floor/floor_Displacement.png'),
-  //specularMap: loader.load('assets/textures/area2/floor/floor_Roughness.png'),
   normalMap: loader.load('assets/textures/area2/floor/floor_NormalGL.png')
 };
 
@@ -77,6 +108,8 @@ const ironPlateTextures = {
   displacementMap: loader.load('assets/textures/area2/iron_plate/iron_plate_displacement.png'),
   normalMap: loader.load('assets/textures/area2/iron_plate/iron_plate_normal.png')
 };
+
+// ---------------------------------------------------------------------------------------------------
 
 // AREA 2 ---------------------------------------------------------------------------
 // Esta seção contém funções relacionadas à Área 2, incluindo a criação da plataforma com elevador
@@ -140,7 +173,7 @@ export function buildPlatformWithElevator(scene, sideSize, frontSize, height, po
     frontTraseiraMaterial,
     frontTraseiraMaterial
   ];
-  
+
 
   const frontalWidth = (frontSize - elevatorLength) / 2;
 
@@ -261,7 +294,7 @@ export function createElevatorDoor(x, y, z, doorWidth, doorHeight, doorDepth) {
   const activationBlock = new THREE.Mesh(
     new THREE.BoxGeometry(3, 0.5, 2),
     materialBlock
-    
+
   );
   activationBlock.position.set(doorGroup.position.x, 1, doorGroup.position.z - 0.5);
   doorGroup.add(activationBlock);
@@ -317,6 +350,7 @@ export function openDoor(scene) {
   if (doorIsOpening) return;
 
   doorIsOpening = true;
+  doorSound.play(); // Toca o som da porta abrindo
 
   let doorOpenDistance = doorGroup.parent.parent.userData.elevatorLength;
 
@@ -356,6 +390,11 @@ export function updateElevator() {
   const { moving, base, targetY } = elevatorState;
 
   if (!moving || !base) return;
+
+  // Se o elevador acabou de começar a se mover
+  if (Math.abs(base.position.y - targetY) > 1) {
+    elevatorSound.play();
+  }
 
   base.position.y = THREE.MathUtils.lerp(base.position.y, targetY, 0.015);
 
@@ -423,7 +462,7 @@ export function canUseElevator() {
 export function addRectangle(width, height, depth, position, color) {
 
   //const rectangleMaterial = createRepeatingMaterial(3/6, height/6, caixa);
-  const texture = createRepeatingMaterial(width/4, height/4, caixa, -0.15, -0.1);
+  const texture = createRepeatingMaterial(width / 4, height / 4, caixa, -0.15, -0.1);
   texture.normalScale.set(0.1, 0.1);
   const geometry = new THREE.BoxGeometry(width, height, depth);
   geometry.attributes.uv2 = geometry.attributes.uv;
@@ -499,7 +538,7 @@ function addMultipleRectangles(platform, sideSize, frontSize, height) {
 
 }
 
-// Função para definir o quanto um material se repete:
+// Função para trabalhar os materiais comuns
 export function createRepeatingMaterial(repeatX, repeatY, maps, displacement, displacementBias) {
   const setupTexture = (map) => {
     if (!map) return null;
@@ -523,7 +562,7 @@ export function createRepeatingMaterial(repeatX, repeatY, maps, displacement, di
   });
 }
 
-// Função para definir o quanto um material se repete:
+// Função para trabalhar os materiais metálicos
 function createRepeatingMetalMaterial(repeatX, repeatY, maps) {
 
   const setupTexture = (map) => {
@@ -535,15 +574,13 @@ function createRepeatingMetalMaterial(repeatX, repeatY, maps) {
     return texture;
   };
 
-  return new THREE.MeshStandardMaterial({
+  return new THREE.MeshLambertMaterial({
     map: setupTexture(maps.colorMap),
     aoMap: setupTexture(maps.aoMap),
     displacementMap: setupTexture(maps.displacementMap),
     displacementScale: 0.8,
     displacementBias: -0.15,
     normalMap: setupTexture(maps.normalMap),
-    metalnessMap: setupTexture(maps.metalnessMap),
-    roughnessMap: setupTexture(maps.roughnessMap),
     metalness: 0.7,
     roughness: 0.05
   });
