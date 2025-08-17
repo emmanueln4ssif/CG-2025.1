@@ -48,7 +48,6 @@ scene.background = cubeMapTexture;
 scene.add(ambientLight);
 scene.add(sunLight);
 let collisionEnemies = [];
-setupEnvironment(scene, collisionObjects, sunLight);
 
 // Setup do personagem e câmera
 setupPlayer(camera, scene, renderer);
